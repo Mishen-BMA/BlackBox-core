@@ -79,46 +79,9 @@
 
         <!-- DASHBOARD -->
         <div class="view active" id="dashboard">
-            <div class="dashboard-hero">
-                <div>
-                    <div class="eyebrow">BlackBox-Core / CTF Backend Engine</div>
-                    <h1>Operator workspace for crypto, recon, forensics, web testing, and CTF utilities.</h1>
-                    <p>Run focused backend-powered tools from one interface. Everything here is scoped for authorized labs, CTFs, and systems you own.</p>
-                    <div class="hero-actions">
-                        <button class="btn btn-run" onclick="showView('crypto')">Start Crypto</button>
-                        <button class="btn btn-outline" onclick="showView('forensics')">Analyze File</button>
-                        <button class="btn btn-ghost" onclick="showView('utils')">Open Utilities</button>
-                    </div>
-                </div>
-                <div class="status-console" id="statusConsole">
-                    <div class="console-header">
-                        <span>System Status</span>
-                        <button class="output-action-btn" onclick="refreshStatus()">Refresh</button>
-                    </div>
-                    <div class="console-line"><span>API</span><strong id="statusApi">Checking</strong></div>
-                    <div class="console-line"><span>Modules</span><strong id="statusModules">-</strong></div>
-                    <div class="console-line"><span>Rate Limit</span><strong id="statusRate">-</strong></div>
-                    <div class="console-line"><span>API Key</span><strong id="statusKey">-</strong></div>
-                </div>
-            </div>
-
-            <div class="metric-grid">
-                <div class="metric">
-                    <span class="metric-value">30</span>
-                    <span class="metric-label">tools wired</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-value">5</span>
-                    <span class="metric-label">modules</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-value">100MB</span>
-                    <span class="metric-label">upload ceiling</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-value">API</span>
-                    <span class="metric-label">optional key gate</span>
-                </div>
+            <div class="view-header">
+                <h2>Dashboard</h2>
+                <p>Select a category to open the tools.</p>
             </div>
 
             <div class="card-grid">
@@ -151,39 +114,6 @@
                     <div class="card-title">Utilities</div>
                     <p class="card-desc">Encoding, hashing, base conversion, regex, JSON formatting, URL parsing, flags</p>
                     <span class="card-badge available">7 Tools</span>
-                </div>
-            </div>
-
-            <div class="dashboard-split">
-                <div class="tool-wrap">
-                    <div class="tool-title">Fast Paths</div>
-                    <div class="quick-list">
-                        <button onclick="showView('network'); setTimeout(() => showTool('headerCheck'), 50);">
-                            <span>header audit</span><small>security headers</small>
-                        </button>
-                        <button onclick="showView('forensics'); setTimeout(() => showTool('stringsExtract'), 50);">
-                            <span>strings hunt</span><small>flags, keys, URLs</small>
-                        </button>
-                        <button onclick="showView('utils'); setTimeout(() => showTool('flagExtract'), 50);">
-                            <span>flag extract</span><small>CTF pattern scan</small>
-                        </button>
-                        <button onclick="showView('webtools'); setTimeout(() => showTool('ssrfGen'), 50);">
-                            <span>payload lab</span><small>SSRF generator</small>
-                        </button>
-                    </div>
-                </div>
-                <div class="tool-wrap">
-                    <div class="tool-title">BlackBox Ecosystem</div>
-                    <div class="ecosystem-list">
-                        <div>
-                            <strong>BlackBox Browser</strong>
-                            <span>Frontend-only helpers for quick decode and static analysis.</span>
-                        </div>
-                        <div>
-                            <strong>BlackBox-Core</strong>
-                            <span>Python-backed execution for RSA, network, files, and live HTTP tests.</span>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -427,7 +357,7 @@
                 <h2>Info BlackBox-Core</h2>
                 <p>Python-powered CTF backend engine</p>
             </div>
-            <div id="about">
+            <div id="aboutContent">
                 <div class="about-card">
                     <h3> What is BlackBox-Core?</h3>
                     <p>BlackBox-Core is the Python backend companion to BlackBox. It handles everything that requires a server - RSA attacks, live network scanning, file forensics with proper libraries, and web vulnerability testing.</p>

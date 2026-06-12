@@ -1,9 +1,8 @@
 from flask import Blueprint, request
-from core.utils import success, error, is_valid_ip, is_valid_domain
+from core.utils import success, error
 import socket
 import requests
 import os
-import json
 
 network_bp = Blueprint('network', __name__)
 
@@ -116,11 +115,17 @@ def port_scan():
     target = data.get('target', '').strip()
     default_ports = [21, 22, 23, 25, 53, 80, 110, 143, 443, 445,
                      3306, 3389, 5432, 5900, 6379, 8080, 8443, 8888, 9200, 27017]
-    ports  = data.get('ports') or default_ports
-    timeout = float(data.get('timeout', 0.8))
+    try:
+        ports  = parse_ports(data.get('ports') or default_ports)
+        timeout = max(0.1, min(float(data.get('timeout', 0.8)), 5.0))
+    except (TypeError, ValueError):
+        return error('Ports must be numbers, comma lists, or ranges like 1-100')
 
     if not target:
         return error('Provide a target')
+
+    if not ports:
+        return error('Provide at least one valid port')
 
     if len(ports) > 200:
         return error('Maximum 200 ports per scan')
@@ -173,6 +178,24 @@ def get_service_name(port):
         11211:'Memcached',2181:'ZooKeeper',2379:'etcd',
     }
     return services.get(port, 'unknown')
+
+
+def parse_ports(raw_ports):
+    if isinstance(raw_ports, str):
+        ports = []
+        for part in raw_ports.split(','):
+            part = part.strip()
+            if not part:
+                continue
+            if '-' in part:
+                start, end = part.split('-', 1)
+                ports.extend(range(int(start), int(end) + 1))
+            else:
+                ports.append(int(part))
+    else:
+        ports = [int(port) for port in raw_ports]
+
+    return sorted({port for port in ports if 1 <= port <= 65535})
 
 
 # -- GEOLOCATION ---------------------------------------------------------------

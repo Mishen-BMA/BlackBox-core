@@ -470,14 +470,6 @@ kbd{
         padding: 20px 16px;
     }
 
-    .dashboard-hero,
-    .dashboard-split{
-        grid-template-columns: 1fr;
-    }
-
-    .metric-grid{
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
 }
 
 @media (max-width: 640px){
@@ -515,17 +507,4 @@ kbd{
         padding: 16px;
     }
 
-    .dashboard-hero{
-        padding: 18px;
-    }
-
-    .metric-grid{
-        grid-template-columns: 1fr;
-    }
-
-    .quick-list button{
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 4px;
-    }
 }

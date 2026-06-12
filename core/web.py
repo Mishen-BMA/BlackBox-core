@@ -8,12 +8,19 @@ import urllib.parse
 web_bp = Blueprint('web', __name__)
 
 
+def normalize_url(url):
+    url = (url or '').strip()
+    if url and not url.startswith(('http://', 'https://')):
+        url = 'https://' + url
+    return url
+
+
 # -- HTTP REQUEST TESTER -------------------------------------------------------
 @web_bp.route('/request', methods=['POST'])
 def http_request():
     """Make HTTP request and return full response details."""
     data    = request.json or {}
-    url     = data.get('url', '').strip()
+    url     = normalize_url(data.get('url', ''))
     method  = data.get('method', 'GET').upper()
     headers = data.get('headers', {})
     body    = data.get('body', '')
@@ -22,9 +29,6 @@ def http_request():
 
     if not url:
         return error('Provide a URL')
-    if not url.startswith(('http://', 'https://')):
-        url = 'https://' + url
-
     try:
         resp = requests.request(
             method, url,
@@ -60,7 +64,7 @@ def http_request():
 def sqli_test():
     """Test URL parameter for basic SQL injection indicators."""
     data   = request.json or {}
-    url    = data.get('url', '').strip()
+    url    = normalize_url(data.get('url', ''))
     param  = data.get('param', 'id')
     value  = data.get('value', '1')
 
@@ -138,7 +142,7 @@ def sqli_test():
 def xss_test():
     """Test URL parameter for reflected XSS."""
     data  = request.json or {}
-    url   = data.get('url', '').strip()
+    url   = normalize_url(data.get('url', ''))
     param = data.get('param', 'q')
 
     if not url:
@@ -224,7 +228,7 @@ def ssrf_payloads():
 def open_redirect():
     """Test for open redirect vulnerability."""
     data    = request.json or {}
-    url     = data.get('url', '').strip()
+    url     = normalize_url(data.get('url', ''))
     param   = data.get('param', 'redirect')
     target  = data.get('target', 'https://evil.com')
 
@@ -273,11 +277,9 @@ def open_redirect():
 def cors_test():
     """Test CORS configuration of a URL."""
     data   = request.json or {}
-    url    = data.get('url', '').strip()
+    url    = normalize_url(data.get('url', ''))
     if not url:
         return error('Provide a URL')
-    if not url.startswith(('http://', 'https://')):
-        url = 'https://' + url
 
     test_origins = [
         'https://evil.com',

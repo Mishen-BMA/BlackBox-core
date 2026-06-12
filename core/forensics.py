@@ -128,7 +128,7 @@ def hex_dump_route():
         'total_size':   len(data),
         'shown_bytes':  len(chunk),
         'hex_dump':     dump,
-        'truncated':    len(data) > max_bytes,
+        'truncated':    max_bytes > 0 and len(data) > max_bytes,
     })
 
 
