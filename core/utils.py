@@ -116,6 +116,46 @@ def generate_hash(text, algorithm="sha256"):
     return {"algorithm": algorithm, "hash": digest, "length": len(digest)}
 
 
+def flag_format_to_regex(flag_format):
+    """Convert a simple flag shape into a regex."""
+    flag_format = (flag_format or "").strip()
+    if not flag_format:
+        return r"[A-Za-z0-9_]+\{[^\r\n\}]+\}"
+
+    token = "\0"
+    pattern = flag_format
+    pattern = pattern.replace("{...}", "{" + token + "}")
+    pattern = pattern.replace("{}", "{" + token + "}")
+    pattern = pattern.replace("...", token)
+    pattern = pattern.replace("*", token)
+
+    escaped = []
+    for char in pattern:
+        if char == token:
+            escaped.append(r"[^\r\n\}]+")
+        elif char == "?":
+            escaped.append(r"[^\r\n\}]")
+        else:
+            escaped.append(re.escape(char))
+    return "".join(escaped)
+
+
+def extract_flag_matches(text, pattern):
+    matches = []
+    for match in re.finditer(pattern, text, re.MULTILINE | re.DOTALL):
+        value = match.group(0)
+        if value == "":
+            continue
+        matches.append({
+            "text": value,
+            "start": match.start(),
+            "end": match.end(),
+        })
+        if len(matches) >= 200:
+            break
+    return matches
+
+
 @utils_bp.post("/encode-decode")
 def encode_decode_route():
     data = request.get_json(silent=True) or {}
@@ -192,9 +232,17 @@ def url_parse_route():
 def extract_flags_route():
     data = request.get_json(silent=True) or {}
     text = data.get("text", "")
-    pattern = data.get("pattern", r"[A-Za-z0-9_]+\{[^\}]+\}")
+    flag_format = data.get("format", "")
+    pattern = data.get("pattern", "").strip() or flag_format_to_regex(flag_format)
     try:
-        flags = re.findall(pattern, text)
-        return success({"count": len(flags), "flags": flags[:100], "pattern": pattern})
+        matches = extract_flag_matches(text, pattern)
+        flags = [match["text"] for match in matches]
+        return success({
+            "count": len(matches),
+            "flags": flags[:100],
+            "matches": matches[:100],
+            "pattern": pattern,
+            "format": flag_format,
+        })
     except re.error as exc:
         return error(f"Invalid regex: {exc}")

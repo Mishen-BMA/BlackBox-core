@@ -68,6 +68,59 @@ function setOutput(id, content, isHTML=false){
     }
 }
 
+function escapeHtml(value){
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function highlightMatches(text, matches){
+    const source = String(text ?? '');
+    const cleanMatches = (matches || [])
+        .filter(m => Number.isInteger(m.start) && Number.isInteger(m.end) && m.end > m.start)
+        .filter(m => m.start >= 0 && m.end <= source.length)
+        .sort((a, b) => a.start - b.start);
+
+    let cursor = 0;
+    let html = '';
+    cleanMatches.forEach(match => {
+        if(match.start < cursor) return;
+        html += escapeHtml(source.slice(cursor, match.start));
+        html += `<mark class="flag-hit">${escapeHtml(source.slice(match.start, match.end))}</mark>`;
+        cursor = match.end;
+    });
+    html += escapeHtml(source.slice(cursor));
+    return html;
+}
+
+function flagResultsHtml(sourceText, data, options={}){
+    const matches = data?.matches || [];
+    const count = data?.count || 0;
+    const pattern = data?.pattern || '';
+    const title = options.title || 'Flag Matches';
+    const sourceLabel = options.sourceLabel || 'Selected Text';
+    const list = matches.length
+        ? matches.map((m, i) => `<div class="flag-match"><span>${i + 1}</span><code>${escapeHtml(m.text)}</code></div>`).join('')
+        : '<div class="flag-empty">No flags found.</div>';
+
+    return `
+        <div class="flag-summary">
+            <strong>${escapeHtml(title)}: ${count}</strong>
+            ${pattern ? `<span>${escapeHtml(pattern)}</span>` : ''}
+        </div>
+        <div class="flag-list">${list}</div>
+        <div class="output-label">${escapeHtml(sourceLabel)}</div>
+        <div class="flag-highlighted-text">${highlightMatches(sourceText, matches)}</div>
+    `;
+}
+
+async function findFlags(text, flagFormat='', pattern=''){
+    return apiPost('/api/utils/extract-flags', {text, format: flagFormat, pattern});
+}
+
 function setLoading(id){
     const el = document.getElementById(id);
     if(el) el.innerHTML = '<div class="spinner"></div> <span style="color:var(--muted);margin-left:10px;">Processing...</span>';

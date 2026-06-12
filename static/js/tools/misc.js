@@ -20,6 +20,8 @@ function buildEncodeDecode(panel){
         </select>
         <label>Input</label>
         <textarea id="encodeInput" placeholder="Paste text here..."></textarea>
+        <label>Flag format (optional)</label>
+        <input type="text" id="encodeFlagFormat" placeholder="flag{} or picoCTF{...}">
         <div class="button-group">
             <button class="btn btn-run" onclick="runEncodeDecode()">Run</button>
             <button class="btn btn-outline" onclick="clearEncodeDecode()">Clear</button>
@@ -31,10 +33,23 @@ function buildEncodeDecode(panel){
 async function runEncodeDecode(){
     const operation = document.getElementById('encodeOperation').value;
     const text = document.getElementById('encodeInput').value;
+    const flagFormat = document.getElementById('encodeFlagFormat').value.trim();
     setLoading('encodeOutput');
     const res = await apiPost('/api/utils/encode-decode', {operation, text});
     if(res.status === 'ok'){
-        setOutput('encodeOutput', res.data.result);
+        if(flagFormat){
+            const flagRes = await findFlags(res.data.result, flagFormat);
+            if(flagRes.status === 'ok'){
+                setOutput('encodeOutput', flagResultsHtml(res.data.result, flagRes.data, {
+                    title: 'Flags found',
+                    sourceLabel: 'Decoded Result'
+                }), true);
+            } else {
+                setOutput('encodeOutput', `${res.data.result}\n\nFlag search error: ${flagRes.error}`);
+            }
+        } else {
+            setOutput('encodeOutput', res.data.result);
+        }
     } else {
         setOutput('encodeOutput', `Error: ${res.error}`);
     }
@@ -42,6 +57,7 @@ async function runEncodeDecode(){
 
 function clearEncodeDecode(){
     document.getElementById('encodeInput').value = '';
+    document.getElementById('encodeFlagFormat').value = '';
     resetOutput('encodeOutput');
 }
 
@@ -231,11 +247,13 @@ function clearUrlParse(){
 
 function buildFlagExtract(panel){
     panel.innerHTML = `
-    ${toolHeader('', 'Flag Extractor', 'Find CTF-style flags in text')}
+    ${toolHeader('', 'Flag Extractor', 'Find flags by format or regex')}
     <div class="tool-wrap">
         <div class="tool-title">Flag Extractor</div>
-        <label>Flag regex</label>
-        <input type="text" id="flagPattern" value="[A-Za-z0-9_]+\\{[^\\}]+\\}">
+        <label>Flag format</label>
+        <input type="text" id="flagFormat" placeholder="flag{} or picoCTF{...}">
+        <label>Regex override (optional)</label>
+        <input type="text" id="flagPattern" placeholder="[A-Za-z0-9_]+\\{[^\\}]+\\}">
         <label>Text</label>
         <textarea id="flagText" style="min-height:200px;" placeholder="Paste decoded output, logs, source, or strings..."></textarea>
         <div class="button-group">
@@ -247,18 +265,24 @@ function buildFlagExtract(panel){
 }
 
 async function runFlagExtract(){
+    const flagFormat = document.getElementById('flagFormat').value.trim();
     const pattern = document.getElementById('flagPattern').value.trim();
     const text = document.getElementById('flagText').value;
     setLoading('flagOutput');
-    const res = await apiPost('/api/utils/extract-flags', {pattern, text});
+    const res = await findFlags(text, flagFormat, pattern);
     if(res.status === 'ok'){
-        setOutput('flagOutput', `Flags found: ${res.data.count}\n\n${res.data.flags.join('\n') || 'No flags found.'}`);
+        setOutput('flagOutput', flagResultsHtml(text, res.data, {
+            title: 'Flags found',
+            sourceLabel: 'Input Text'
+        }), true);
     } else {
         setOutput('flagOutput', `Error: ${res.error}`);
     }
 }
 
 function clearFlagExtract(){
+    document.getElementById('flagFormat').value = '';
+    document.getElementById('flagPattern').value = '';
     document.getElementById('flagText').value = '';
     resetOutput('flagOutput');
 }

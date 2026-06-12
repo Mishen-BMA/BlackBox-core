@@ -5,6 +5,8 @@ function buildFileAnalysis(panel){
         <div class="tool-title"> Full File Analysis</div>
         <label>Upload File</label>
         <input type="file" id="analysisFile">
+        <label>Flag format (optional)</label>
+        <input type="text" id="analysisFlagFormat" placeholder="flag{} or picoCTF{...}">
         <div class="button-group">
             <button class="btn btn-run" onclick="runFileAnalysis()">Analyze</button>
             <button class="btn btn-outline" onclick="clearFileAnalysis()">Clear</button>
@@ -15,6 +17,7 @@ function buildFileAnalysis(panel){
 
 async function runFileAnalysis(){
     const file = document.getElementById('analysisFile').files[0];
+    const flagFormat = document.getElementById('analysisFlagFormat').value.trim();
     if(!file){ showToast('Upload a file','error'); return; }
     setLoading('analysisOutput');
     const res = await apiUpload('/api/forensics/analyze', file);
@@ -28,13 +31,34 @@ async function runFileAnalysis(){
         out += `HEX PREVIEW (first 256 bytes):\n${d.hex_preview}\n\n`;
         out += `STRINGS (first 50):\n${d.strings.slice(0,50).map(s=>'  '+s).join('\n')}`;
         if(d.string_count > 50) out += `\n  ... and ${d.string_count-50} more strings`;
-        setOutput('analysisOutput', out);
+        if(flagFormat){
+            const stringsText = d.strings.join('\n');
+            const flagRes = await findFlags(stringsText, flagFormat);
+            if(flagRes.status === 'ok'){
+                setOutput('analysisOutput',
+                    `<div class="plain-output-block">${escapeHtml(out)}</div>` +
+                    flagResultsHtml(stringsText, flagRes.data, {
+                        title: 'Flags found in strings',
+                        sourceLabel: 'Extracted Strings'
+                    }),
+                    true
+                );
+            } else {
+                setOutput('analysisOutput', `${out}\n\nFlag search error: ${flagRes.error}`);
+            }
+        } else {
+            setOutput('analysisOutput', out);
+        }
         showToast('Analysis complete!');
     } else {
         setOutput('analysisOutput', `Error: ${res.error}`);
     }
 }
-function clearFileAnalysis(){ document.getElementById('analysisFile').value=''; resetOutput('analysisOutput'); }
+function clearFileAnalysis(){
+    document.getElementById('analysisFile').value='';
+    document.getElementById('analysisFlagFormat').value='';
+    resetOutput('analysisOutput');
+}
 
 function buildStringsExtract(panel){
     panel.innerHTML = `
@@ -47,6 +71,8 @@ function buildStringsExtract(panel){
             <div><label>Min Length</label><input type="number" id="stringsMin" value="4" min="1"></div>
             <div><label>Filter keyword (optional)</label><input type="text" id="stringsFilter" placeholder="flag, pass, key..."></div>
         </div>
+        <label>Flag format (optional)</label>
+        <input type="text" id="stringsFlagFormat" placeholder="flag{} or picoCTF{...}">
         <div class="button-group">
             <button class="btn btn-run" onclick="runStringsExtract()">Extract</button>
             <button class="btn btn-outline" onclick="clearStrings()">Clear</button>
@@ -59,6 +85,7 @@ async function runStringsExtract(){
     const file   = document.getElementById('stringsFile').files[0];
     const minLen = document.getElementById('stringsMin').value;
     const filter = document.getElementById('stringsFilter').value;
+    const flagFormat = document.getElementById('stringsFlagFormat').value.trim();
     if(!file){ showToast('Upload a file','error'); return; }
     setLoading('stringsOutput');
     const fd = new FormData();
@@ -68,15 +95,34 @@ async function runStringsExtract(){
     const res = await apiUploadForm('/api/forensics/strings', fd);
     if(res.status === 'ok'){
         const d = res.data;
-        setOutput('stringsOutput',
-            `Total strings: ${d.total}${d.filter ? ` (filtered by "${d.filter}")` : ''}\n\n` +
-            d.strings.join('\n')
-        );
+        const header = `Total strings: ${d.total}${d.filter ? ` (filtered by "${d.filter}")` : ''}\n\n`;
+        const stringsText = d.strings.join('\n');
+        if(flagFormat){
+            const flagRes = await findFlags(stringsText, flagFormat);
+            if(flagRes.status === 'ok'){
+                setOutput('stringsOutput',
+                    `<div class="plain-output-block">${escapeHtml(header)}</div>` +
+                    flagResultsHtml(stringsText, flagRes.data, {
+                        title: 'Flags found',
+                        sourceLabel: 'Strings'
+                    }),
+                    true
+                );
+            } else {
+                setOutput('stringsOutput', `${header}${stringsText}\n\nFlag search error: ${flagRes.error}`);
+            }
+        } else {
+            setOutput('stringsOutput', header + stringsText);
+        }
     } else {
         setOutput('stringsOutput', `Error: ${res.error}`);
     }
 }
-function clearStrings(){ document.getElementById('stringsFile').value=''; resetOutput('stringsOutput'); }
+function clearStrings(){
+    document.getElementById('stringsFile').value='';
+    document.getElementById('stringsFlagFormat').value='';
+    resetOutput('stringsOutput');
+}
 
 function buildHexDumpTool(panel){
     panel.innerHTML = `
@@ -181,6 +227,8 @@ function buildLsbStego(panel){
             <option value="2">2 bits</option>
             <option value="4">4 bits</option>
         </select>
+        <label>Flag format (optional)</label>
+        <input type="text" id="lsbFlagFormat" placeholder="flag{} or picoCTF{...}">
         <div class="button-group">
             <button class="btn btn-run" onclick="runLsbStego()">Extract LSB</button>
             <button class="btn btn-outline" onclick="clearLsb()">Clear</button>
@@ -192,6 +240,7 @@ function buildLsbStego(panel){
 async function runLsbStego(){
     const file = document.getElementById('lsbFile').files[0];
     const bits = document.getElementById('lsbBits').value;
+    const flagFormat = document.getElementById('lsbFlagFormat').value.trim();
     if(!file){ showToast('Upload an image','error'); return; }
     setLoading('lsbOutput');
     const fd = new FormData();
@@ -205,13 +254,34 @@ async function runLsbStego(){
         out += `Flag detected: ${d.has_flag ? ' YES' : 'No'}\n\n`;
         out += `Hex preview: ${d.hex_preview}\n\n`;
         out += `ASCII text:\n${d.extracted_text || '(no printable text found)'}`;
-        setOutput('lsbOutput', out);
+        if(flagFormat){
+            const text = d.extracted_text || '';
+            const flagRes = await findFlags(text, flagFormat);
+            if(flagRes.status === 'ok'){
+                setOutput('lsbOutput',
+                    `<div class="plain-output-block">${escapeHtml(out)}</div>` +
+                    flagResultsHtml(text, flagRes.data, {
+                        title: 'Flags found',
+                        sourceLabel: 'Extracted Text'
+                    }),
+                    true
+                );
+            } else {
+                setOutput('lsbOutput', `${out}\n\nFlag search error: ${flagRes.error}`);
+            }
+        } else {
+            setOutput('lsbOutput', out);
+        }
         if(d.has_flag) showToast(' Flag detected in LSB!');
     } else {
         setOutput('lsbOutput', `Error: ${res.error}`);
     }
 }
-function clearLsb(){ document.getElementById('lsbFile').value=''; resetOutput('lsbOutput'); }
+function clearLsb(){
+    document.getElementById('lsbFile').value='';
+    document.getElementById('lsbFlagFormat').value='';
+    resetOutput('lsbOutput');
+}
 
 function buildEntropyTool(panel){
     panel.innerHTML = `

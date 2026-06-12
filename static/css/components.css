@@ -402,6 +402,71 @@ label{
     font-family:    var(--font);
 }
 
+.flag-summary{
+    display:        flex;
+    flex-wrap:      wrap;
+    align-items:    center;
+    gap:            8px 12px;
+    margin-bottom:  10px;
+}
+
+.flag-summary strong{
+    color: var(--primary);
+}
+
+.flag-summary span{
+    color:       var(--muted-light);
+    font-size:   12px;
+    font-family: var(--font-mono);
+}
+
+.flag-list{
+    display:        flex;
+    flex-direction: column;
+    gap:            6px;
+    margin-bottom:  14px;
+}
+
+.flag-match{
+    display:      flex;
+    align-items:  flex-start;
+    gap:          8px;
+}
+
+.flag-match span{
+    color:     var(--muted);
+    min-width: 22px;
+}
+
+.flag-match code{
+    word-break: break-all;
+}
+
+.flag-empty{
+    color: var(--muted-light);
+}
+
+.flag-highlighted-text{
+    padding:       12px;
+    border:        1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background:    rgba(0, 0, 0, 0.18);
+    white-space:   pre-wrap;
+}
+
+.plain-output-block{
+    margin-bottom: 14px;
+    white-space:   pre-wrap;
+}
+
+.flag-hit{
+    background:    rgba(255, 228, 92, 0.24);
+    color:         var(--text);
+    border:        1px solid rgba(255, 228, 92, 0.45);
+    border-radius: 4px;
+    padding:       0 3px;
+}
+
 /* =========================
    TABS
 ========================= */
