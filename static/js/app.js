@@ -127,6 +127,12 @@ function showToast(msg, type='success'){
 let currentView = 'dashboard';
 let currentTool = null;
 
+function updateBackButton(){
+    const backButton = document.getElementById('backButton');
+    if(!backButton) return;
+    backButton.hidden = currentView === 'dashboard' && !currentTool;
+}
+
 function showView(viewId){
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('.tool-panel').forEach(p => p.style.display='none');
@@ -138,6 +144,7 @@ function showView(viewId){
     const activeBtn = [...document.querySelectorAll('.nav-btn')]
         .find(b => b.getAttribute('onclick')?.includes(`'${viewId}'`));
     if(activeBtn) activeBtn.classList.add('active');
+    updateBackButton();
     window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -149,6 +156,7 @@ function showTool(toolId){
     panel.style.display = 'block';
     buildTool(toolId, panel);
     currentTool = toolId;
+    updateBackButton();
     window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -157,6 +165,7 @@ function goBack(){
         document.querySelectorAll('.tool-panel').forEach(p => p.style.display='none');
         document.querySelectorAll('.card-grid').forEach(g => g.style.display='grid');
         currentTool = null;
+        updateBackButton();
     } else {
         showView('dashboard');
     }
@@ -164,7 +173,6 @@ function goBack(){
 
 function toolHeader(icon, name, desc){
     return `
-    <button class="back-btn" onclick="goBack()"><- Back</button>
     <div class="view-header"><h2>${icon} ${name}</h2><p>${desc}</p></div>`;
 }
 
