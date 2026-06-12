@@ -1,5 +1,7 @@
 # BlackBox Core
 
+Advanced CTF operations framework built for file intelligence, forensics, reverse engineering, cryptography, and challenge analysis.
+
 BlackBox Core is a FastAPI scaffold for CTF and security challenge helper tooling.
 
 ## Quick Start
