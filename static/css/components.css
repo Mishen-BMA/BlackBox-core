@@ -28,9 +28,200 @@
 
 .card-grid{
     display:                grid;
-    grid-template-columns:  repeat(auto-fill, minmax(240px, 1fr));
+    grid-template-columns:  repeat(auto-fill, minmax(250px, 1fr));
     gap:                    16px;
     margin-bottom:          20px;
+}
+
+/* =========================
+   DASHBOARD
+========================= */
+
+.dashboard-hero{
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(300px, 0.7fr);
+    gap: 22px;
+    align-items: stretch;
+    margin-bottom: 18px;
+    padding: 26px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background:
+        linear-gradient(135deg, rgba(0, 212, 255, 0.08), transparent 42%),
+        var(--panel);
+    box-shadow: var(--shadow);
+}
+
+.eyebrow{
+    color: var(--primary);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+
+.dashboard-hero p{
+    max-width: 760px;
+    color: var(--muted-light);
+    font-size: 15px;
+}
+
+.hero-actions{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.status-console{
+    min-height: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    font-family: var(--font-mono);
+}
+
+.console-header{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--primary);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 14px;
+}
+
+.console-line{
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 0;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+}
+
+.console-line span{
+    color: var(--muted);
+}
+
+.console-line strong{
+    color: var(--text);
+    text-align: right;
+    font-weight: 700;
+}
+
+.metric-grid{
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.metric{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+}
+
+.metric-value{
+    display: block;
+    color: var(--primary);
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 800;
+}
+
+.metric-label{
+    display: block;
+    color: var(--muted-light);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+.dashboard-split{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.quick-list,
+.ecosystem-list{
+    display: grid;
+    gap: 10px;
+}
+
+.quick-list button{
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    cursor: pointer;
+    transition: var(--transition);
+    text-align: left;
+}
+
+.quick-list button:hover{
+    border-color: var(--primary);
+    background: var(--primary-dim);
+}
+
+.quick-list span{
+    color: var(--primary);
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 0.8px;
+}
+
+.quick-list small{
+    color: var(--muted-light);
+    font-size: 12px;
+}
+
+.ecosystem-list div{
+    padding: 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--primary);
+    border-radius: var(--radius-sm);
+}
+
+.ecosystem-list strong,
+.ecosystem-list span{
+    display: block;
+}
+
+.ecosystem-list strong{
+    color: var(--primary);
+    margin-bottom: 4px;
+}
+
+.ecosystem-list span{
+    color: var(--muted-light);
+    font-size: 13px;
+}
+
+.status-pill{
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--panel);
+    color: var(--muted-light);
+    font-size: 12px;
+    white-space: nowrap;
 }
 
 /* =========================

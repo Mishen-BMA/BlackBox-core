@@ -344,14 +344,52 @@ function buildTool(toolId, panel){
 
 async function checkServer(){
     try{
-        const r   = await fetch('/api/ping');
+        const r   = await fetch('/api/status');
         const data = await r.json();
         const el  = document.getElementById('serverStatus');
-        if(el) el.innerHTML = `<span style="color:var(--success);"> Server Online</span>`;
+        if(el) {
+            el.textContent = `Server online - v${data.version || '1.x'}`;
+            el.style.color = 'var(--success)';
+            el.style.borderColor = 'rgba(63, 185, 80, 0.45)';
+        }
+        updateStatusConsole(data);
     } catch(e){
         const el = document.getElementById('serverStatus');
-        if(el) el.innerHTML = `<span style="color:var(--danger);"> Server Offline</span>`;
+        if(el) {
+            el.textContent = 'Server offline';
+            el.style.color = 'var(--danger)';
+            el.style.borderColor = 'rgba(248, 81, 73, 0.45)';
+        }
+        updateStatusConsole(null);
     }
+}
+
+function updateStatusConsole(data){
+    const api = document.getElementById('statusApi');
+    const modules = document.getElementById('statusModules');
+    const rate = document.getElementById('statusRate');
+    const key = document.getElementById('statusKey');
+    if(!api || !modules || !rate || !key) return;
+
+    if(!data || data.status !== 'ok'){
+        api.textContent = 'Offline';
+        modules.textContent = '-';
+        rate.textContent = '-';
+        key.textContent = '-';
+        return;
+    }
+
+    const moduleCount = data.modules ? Object.keys(data.modules).length : 0;
+    api.textContent = 'Operational';
+    modules.textContent = `${moduleCount} loaded`;
+    rate.textContent = data.limits?.rate_limit_enabled ? `${data.limits.rate_limit_per_minute}/min` : 'Disabled';
+    key.textContent = data.limits?.api_key_required ? 'Required' : 'Optional';
+}
+
+function refreshStatus(){
+    const api = document.getElementById('statusApi');
+    if(api) api.textContent = 'Refreshing';
+    checkServer();
 }
 
 checkServer();

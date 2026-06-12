@@ -19,7 +19,7 @@
             <div class="sidebar-tagline">CORE - Backend Engine</div>
         </div>
         <div class="sidebar-search">
-            <input type="text" id="sidebarSearch" placeholder=" Search tools...">
+            <input type="text" id="sidebarSearch" placeholder="Search tools...">
         </div>
         <nav class="sidebar-nav">
             <div class="nav-label">Main</div>
@@ -53,7 +53,7 @@
             </button>
         </nav>
         <div class="sidebar-footer">
-            <span class="version-tag">Core v1.0</span>
+            <span class="version-tag">Core v1.1</span>
             <div class="theme-btns">
                 <div class="theme-dot cyber active"    onclick="setTheme('cyber')"></div>
                 <div class="theme-dot hacker"          onclick="setTheme('hacker')"></div>
@@ -71,7 +71,7 @@
                 <div class="search-results" id="searchResults"></div>
             </div>
             <div class="topbar-shortcuts">
-                <span id="serverStatus" style="font-size:12px;"></span>
+                <span id="serverStatus" class="status-pill">Checking server...</span>
             </div>
         </div>
 
@@ -79,10 +79,48 @@
 
         <!-- DASHBOARD -->
         <div class="view active" id="dashboard">
-            <div class="view-header">
-                <h2> BlackBox-Core</h2>
-                <p>Python-powered backend CTF engine - handles what the browser cannot</p>
+            <div class="dashboard-hero">
+                <div>
+                    <div class="eyebrow">BlackBox-Core / CTF Backend Engine</div>
+                    <h1>Operator workspace for crypto, recon, forensics, web testing, and CTF utilities.</h1>
+                    <p>Run focused backend-powered tools from one interface. Everything here is scoped for authorized labs, CTFs, and systems you own.</p>
+                    <div class="hero-actions">
+                        <button class="btn btn-run" onclick="showView('crypto')">Start Crypto</button>
+                        <button class="btn btn-outline" onclick="showView('forensics')">Analyze File</button>
+                        <button class="btn btn-ghost" onclick="showView('utils')">Open Utilities</button>
+                    </div>
+                </div>
+                <div class="status-console" id="statusConsole">
+                    <div class="console-header">
+                        <span>System Status</span>
+                        <button class="output-action-btn" onclick="refreshStatus()">Refresh</button>
+                    </div>
+                    <div class="console-line"><span>API</span><strong id="statusApi">Checking</strong></div>
+                    <div class="console-line"><span>Modules</span><strong id="statusModules">-</strong></div>
+                    <div class="console-line"><span>Rate Limit</span><strong id="statusRate">-</strong></div>
+                    <div class="console-line"><span>API Key</span><strong id="statusKey">-</strong></div>
+                </div>
             </div>
+
+            <div class="metric-grid">
+                <div class="metric">
+                    <span class="metric-value">30</span>
+                    <span class="metric-label">tools wired</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-value">5</span>
+                    <span class="metric-label">modules</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-value">100MB</span>
+                    <span class="metric-label">upload ceiling</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-value">API</span>
+                    <span class="metric-label">optional key gate</span>
+                </div>
+            </div>
+
             <div class="card-grid">
                 <div class="card" onclick="showView('crypto')">
                     <div class="card-icon"></div>
@@ -116,16 +154,35 @@
                 </div>
             </div>
 
-            <div class="tool-wrap" style="margin-top:24px;">
-                <div class="tool-title"> BlackBox Ecosystem</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:14px;">
-                    <div style="padding:16px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border);">
-                        <div style="color:var(--primary);font-weight:700;margin-bottom:8px;">BlackBox (Browser)</div>
-                        <div style="color:var(--muted);">60+ frontend tools - encoding, ciphers, web analysis, basic forensics. No installation needed.</div>
+            <div class="dashboard-split">
+                <div class="tool-wrap">
+                    <div class="tool-title">Fast Paths</div>
+                    <div class="quick-list">
+                        <button onclick="showView('network'); setTimeout(() => showTool('headerCheck'), 50);">
+                            <span>header audit</span><small>security headers</small>
+                        </button>
+                        <button onclick="showView('forensics'); setTimeout(() => showTool('stringsExtract'), 50);">
+                            <span>strings hunt</span><small>flags, keys, URLs</small>
+                        </button>
+                        <button onclick="showView('utils'); setTimeout(() => showTool('flagExtract'), 50);">
+                            <span>flag extract</span><small>CTF pattern scan</small>
+                        </button>
+                        <button onclick="showView('webtools'); setTimeout(() => showTool('ssrfGen'), 50);">
+                            <span>payload lab</span><small>SSRF generator</small>
+                        </button>
                     </div>
-                    <div style="padding:16px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--primary);border-left-width:4px;">
-                        <div style="color:var(--primary);font-weight:700;margin-bottom:8px;">BlackBox-Core <- You are here</div>
-                        <div style="color:var(--muted);">Python backend - RSA attacks, network recon, file forensics, live web testing.</div>
+                </div>
+                <div class="tool-wrap">
+                    <div class="tool-title">BlackBox Ecosystem</div>
+                    <div class="ecosystem-list">
+                        <div>
+                            <strong>BlackBox Browser</strong>
+                            <span>Frontend-only helpers for quick decode and static analysis.</span>
+                        </div>
+                        <div>
+                            <strong>BlackBox-Core</strong>
+                            <span>Python-backed execution for RSA, network, files, and live HTTP tests.</span>
+                        </div>
                     </div>
                 </div>
             </div>

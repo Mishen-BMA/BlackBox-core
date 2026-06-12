@@ -19,15 +19,15 @@ html{
 
 :root{
     /* Backgrounds */
-    --bg:           #0d1117;
-    --topbar-bg:    rgba(13, 17, 23, 0.95);
-    --panel:        #161b22;
-    --panel-light:  #1f2937;
-    --panel-hover:  #21262d;
+    --bg:           #090d13;
+    --topbar-bg:    rgba(9, 13, 19, 0.92);
+    --panel:        #121923;
+    --panel-light:  #1b2532;
+    --panel-hover:  #1f2b3a;
 
     /* Borders */
-    --border:       #30363d;
-    --border-light: #3d444d;
+    --border:       #263241;
+    --border-light: #3a4a5f;
 
     /* Colors */
     --primary:      #00d4ff;
@@ -51,6 +51,7 @@ html{
     --transition:   0.25s ease;
     --font:         'Segoe UI', system-ui, sans-serif;
     --font-mono:    'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    --shadow:       0 18px 50px rgba(0, 0, 0, 0.28);
 }
 
 /* =========================
@@ -151,6 +152,19 @@ body{
     text-rendering: optimizeLegibility;
 }
 
+body::before{
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    background-image:
+        linear-gradient(rgba(0, 212, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.035) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,0.8), rgba(0,0,0,0.2));
+}
+
 /* =========================
    SCROLLBAR
 ========================= */
@@ -196,6 +210,14 @@ h2{
     font-size:   28px;
     margin-bottom: 6px;
     text-shadow: 0 0 20px var(--primary-glow);
+}
+
+h1{
+    font-size: clamp(32px, 5vw, 56px);
+    letter-spacing: 0;
+    line-height: 1.04;
+    color: var(--text);
+    margin: 8px 0 14px;
 }
 
 h3{
