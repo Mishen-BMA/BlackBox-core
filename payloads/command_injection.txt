@@ -1,6 +1,0 @@
-;id
-&& id
-| whoami
-`id`
-$(id)
-

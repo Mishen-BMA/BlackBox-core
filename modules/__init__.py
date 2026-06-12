@@ -1,2 +1,0 @@
-"""CTF helper modules."""
-

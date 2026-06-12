@@ -1,17 +1,412 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>BlackBox Core</title>
-    <link rel="stylesheet" href="/static/styles.css">
-  </head>
-  <body>
-    <main>
-      <h1>BlackBox Core</h1>
-      <p>CTF helper API scaffold.</p>
-    </main>
-    <script src="/static/blackbox-core-client.js"></script>
-  </body>
-</html>
+<!DOCTYPE html>
+<html lang="en" data-theme="cyber">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlackBox-Core - CTF Backend Engine</title>
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/layout.css">
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
+</head>
+<body>
+<div class="app">
 
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">BLACKBOX</div>
+            <div class="sidebar-tagline">CORE - Backend Engine</div>
+        </div>
+        <div class="sidebar-search">
+            <input type="text" id="sidebarSearch" placeholder=" Search tools...">
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-label">Main</div>
+            <button class="nav-btn active" onclick="showView('dashboard')">
+                <span class="nav-icon"></span> Dashboard
+            </button>
+            <div class="nav-label">Categories</div>
+            <button class="nav-btn" onclick="showView('crypto')">
+                <span class="nav-icon"></span> Cryptography
+                <span class="nav-badge">5</span>
+            </button>
+            <button class="nav-btn" onclick="showView('network')">
+                <span class="nav-icon"></span> Network Recon
+                <span class="nav-badge">7</span>
+            </button>
+            <button class="nav-btn" onclick="showView('forensics')">
+                <span class="nav-icon"></span> Forensics
+                <span class="nav-badge">6</span>
+            </button>
+            <button class="nav-btn" onclick="showView('webtools')">
+                <span class="nav-icon"></span> Web Testing
+                <span class="nav-badge">5</span>
+            </button>
+            <button class="nav-btn" onclick="showView('utils')">
+                <span class="nav-icon"></span> Utilities
+                <span class="nav-badge">7</span>
+            </button>
+            <div class="nav-label">Info</div>
+            <button class="nav-btn" onclick="showView('about')">
+                <span class="nav-icon">Info</span> About
+            </button>
+        </nav>
+        <div class="sidebar-footer">
+            <span class="version-tag">Core v1.0</span>
+            <div class="theme-btns">
+                <div class="theme-dot cyber active"    onclick="setTheme('cyber')"></div>
+                <div class="theme-dot hacker"          onclick="setTheme('hacker')"></div>
+                <div class="theme-dot midnight"        onclick="setTheme('midnight')"></div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="content">
+        <div class="topbar">
+            <div class="topbar-search">
+                <span class="search-icon"></span>
+                <input type="text" id="globalSearch" placeholder="Search tools... (Press / to focus)">
+                <div class="search-results" id="searchResults"></div>
+            </div>
+            <div class="topbar-shortcuts">
+                <span id="serverStatus" style="font-size:12px;"></span>
+            </div>
+        </div>
+
+        <div class="page">
+
+        <!-- DASHBOARD -->
+        <div class="view active" id="dashboard">
+            <div class="view-header">
+                <h2> BlackBox-Core</h2>
+                <p>Python-powered backend CTF engine - handles what the browser cannot</p>
+            </div>
+            <div class="card-grid">
+                <div class="card" onclick="showView('crypto')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">Cryptography</div>
+                    <p class="card-desc">RSA Wiener attack, large N factoring, Hastad broadcast, AES, key parsing</p>
+                    <span class="card-badge available">5 Tools</span>
+                </div>
+                <div class="card" onclick="showView('network')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">Network Recon</div>
+                    <p class="card-desc">DNS, WHOIS, port scan, GeoIP, subdomain recon, SSL, Shodan</p>
+                    <span class="card-badge available">7 Tools</span>
+                </div>
+                <div class="card" onclick="showView('forensics')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">Forensics</div>
+                    <p class="card-desc">File analysis, strings, hex dump, ZIP crack, LSB steg, entropy</p>
+                    <span class="card-badge available">6 Tools</span>
+                </div>
+                <div class="card" onclick="showView('webtools')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">Web Testing</div>
+                    <p class="card-desc">HTTP tester, SQLi scanner, XSS tester, CORS tester, SSRF payloads</p>
+                    <span class="card-badge available">5 Tools</span>
+                </div>
+                <div class="card" onclick="showView('utils')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">Utilities</div>
+                    <p class="card-desc">Encoding, hashing, base conversion, regex, JSON formatting, URL parsing, flags</p>
+                    <span class="card-badge available">7 Tools</span>
+                </div>
+            </div>
+
+            <div class="tool-wrap" style="margin-top:24px;">
+                <div class="tool-title"> BlackBox Ecosystem</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:14px;">
+                    <div style="padding:16px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border);">
+                        <div style="color:var(--primary);font-weight:700;margin-bottom:8px;">BlackBox (Browser)</div>
+                        <div style="color:var(--muted);">60+ frontend tools - encoding, ciphers, web analysis, basic forensics. No installation needed.</div>
+                    </div>
+                    <div style="padding:16px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--primary);border-left-width:4px;">
+                        <div style="color:var(--primary);font-weight:700;margin-bottom:8px;">BlackBox-Core <- You are here</div>
+                        <div style="color:var(--muted);">Python backend - RSA attacks, network recon, file forensics, live web testing.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CRYPTOGRAPHY -->
+        <div class="view" id="crypto">
+            <div class="view-header">
+                <h2> Cryptography</h2>
+                <p>Advanced crypto attacks requiring server-side computation</p>
+            </div>
+            <div class="card-grid">
+                <div class="card" onclick="showTool('rsaFactor')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">RSA Large N Factor</div>
+                    <p class="card-desc">Factor large RSA modulus using sympy</p>
+                </div>
+                <div class="card" onclick="showTool('rsaWiener')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">RSA Wiener Attack</div>
+                    <p class="card-desc">Recover small private exponent d</p>
+                </div>
+                <div class="card" onclick="showTool('rsaDecrypt')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">RSA Decrypt (p,q known)</div>
+                    <p class="card-desc">Decrypt given p, q, e, ciphertext</p>
+                </div>
+                <div class="card" onclick="showTool('rsaHastad')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">RSA Hastad Broadcast</div>
+                    <p class="card-desc">Attack same message encrypted with e=3</p>
+                </div>
+                <div class="card" onclick="showTool('rsaKeyParser')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">RSA Key Parser</div>
+                    <p class="card-desc">Extract n, e, d, p, q from PEM key</p>
+                </div>
+            </div>
+            <div id="rsaFactor"    class="tool-panel" style="display:none"></div>
+            <div id="rsaWiener"   class="tool-panel" style="display:none"></div>
+            <div id="rsaDecrypt"  class="tool-panel" style="display:none"></div>
+            <div id="rsaHastad"   class="tool-panel" style="display:none"></div>
+            <div id="rsaKeyParser" class="tool-panel" style="display:none"></div>
+        </div>
+
+        <!-- NETWORK -->
+        <div class="view" id="network">
+            <div class="view-header">
+                <h2> Network Recon</h2>
+                <p>Live network intelligence - requires internet access</p>
+            </div>
+            <div class="card-grid">
+                <div class="card" onclick="showTool('dnsLookup')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">DNS Lookup</div>
+                    <p class="card-desc">A, AAAA, MX, TXT, NS, CNAME, SOA records</p>
+                </div>
+                <div class="card" onclick="showTool('whoisLookup')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">WHOIS Lookup</div>
+                    <p class="card-desc">Full WHOIS registration data</p>
+                </div>
+                <div class="card" onclick="showTool('portScan')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">Port Scanner</div>
+                    <p class="card-desc">TCP scan with banner grabbing</p>
+                </div>
+                <div class="card" onclick="showTool('geoIp')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">GeoIP Lookup</div>
+                    <p class="card-desc">IP geolocation and ASN info</p>
+                </div>
+                <div class="card" onclick="showTool('subdomainRecon')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">Subdomain Recon</div>
+                    <p class="card-desc">Find subdomains via crt.sh + resolve</p>
+                </div>
+                <div class="card" onclick="showTool('sslInfo')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">SSL Certificate</div>
+                    <p class="card-desc">Full SSL cert details and expiry</p>
+                </div>
+                <div class="card" onclick="showTool('headerCheck')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">Security Headers</div>
+                    <p class="card-desc">Fetch and analyze HTTP security headers</p>
+                </div>
+            </div>
+            <div id="dnsLookup"      class="tool-panel" style="display:none"></div>
+            <div id="whoisLookup"    class="tool-panel" style="display:none"></div>
+            <div id="portScan"       class="tool-panel" style="display:none"></div>
+            <div id="geoIp"          class="tool-panel" style="display:none"></div>
+            <div id="subdomainRecon" class="tool-panel" style="display:none"></div>
+            <div id="sslInfo"        class="tool-panel" style="display:none"></div>
+            <div id="headerCheck"    class="tool-panel" style="display:none"></div>
+        </div>
+
+        <!-- FORENSICS -->
+        <div class="view" id="forensics">
+            <div class="view-header">
+                <h2> Forensics</h2>
+                <p>File analysis with server-side processing</p>
+            </div>
+            <div class="card-grid">
+                <div class="card" onclick="showTool('fileAnalysis')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">Full File Analysis</div>
+                    <p class="card-desc">Magic bytes, hashes, entropy, strings in one shot</p>
+                </div>
+                <div class="card" onclick="showTool('stringsExtract')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">Strings Extractor</div>
+                    <p class="card-desc">Extract all strings with filter support</p>
+                </div>
+                <div class="card" onclick="showTool('hexDumpTool')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">Hex Dump</div>
+                    <p class="card-desc">Full hex dump with offset and ASCII</p>
+                </div>
+                <div class="card" onclick="showTool('zipCrack')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">ZIP Password Cracker</div>
+                    <p class="card-desc">Crack password-protected ZIP files</p>
+                </div>
+                <div class="card" onclick="showTool('lsbStego')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">LSB Steganography</div>
+                    <p class="card-desc">Server-side LSB extraction with Pillow</p>
+                </div>
+                <div class="card" onclick="showTool('entropyTool')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">Entropy Analysis</div>
+                    <p class="card-desc">Detailed byte frequency and entropy</p>
+                </div>
+            </div>
+            <div id="fileAnalysis"  class="tool-panel" style="display:none"></div>
+            <div id="stringsExtract" class="tool-panel" style="display:none"></div>
+            <div id="hexDumpTool"   class="tool-panel" style="display:none"></div>
+            <div id="zipCrack"      class="tool-panel" style="display:none"></div>
+            <div id="lsbStego"      class="tool-panel" style="display:none"></div>
+            <div id="entropyTool"   class="tool-panel" style="display:none"></div>
+        </div>
+
+        <!-- WEB TESTING -->
+        <div class="view" id="webtools">
+            <div class="view-header">
+                <h2> Web Testing</h2>
+                <p>Live web vulnerability testing - use on authorized targets only</p>
+            </div>
+            <div class="warn-box" style="margin-bottom:16px;">
+                WARN Only use these tools against systems you own or have explicit permission to test.
+            </div>
+            <div class="card-grid">
+                <div class="card" onclick="showTool('httpTester')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">HTTP Request Tester</div>
+                    <p class="card-desc">Make any HTTP request and inspect response</p>
+                </div>
+                <div class="card" onclick="showTool('sqliScanner')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">SQLi Scanner</div>
+                    <p class="card-desc">Test URL parameter for SQL injection</p>
+                </div>
+                <div class="card" onclick="showTool('xssScanner')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">XSS Tester</div>
+                    <p class="card-desc">Test for reflected XSS vulnerability</p>
+                </div>
+                <div class="card" onclick="showTool('corsTester')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">CORS Tester</div>
+                    <p class="card-desc">Test CORS misconfiguration</p>
+                </div>
+                <div class="card" onclick="showTool('ssrfGen')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">SSRF Payload Generator</div>
+                    <p class="card-desc">Generate SSRF test payloads</p>
+                </div>
+            </div>
+            <div id="httpTester"   class="tool-panel" style="display:none"></div>
+            <div id="sqliScanner"  class="tool-panel" style="display:none"></div>
+            <div id="xssScanner"   class="tool-panel" style="display:none"></div>
+            <div id="corsTester"   class="tool-panel" style="display:none"></div>
+            <div id="ssrfGen"      class="tool-panel" style="display:none"></div>
+        </div>
+
+        <!-- UTILITIES -->
+        <div class="view" id="utils">
+            <div class="view-header">
+                <h2> Utilities</h2>
+                <p>Fast helpers for common CTF text, encoding, and parsing work</p>
+            </div>
+            <div class="card-grid">
+                <div class="card" onclick="showTool('encodeDecode')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">Encode / Decode</div>
+                    <p class="card-desc">Base64, Base32, hex, URL, HTML, and binary conversions</p>
+                </div>
+                <div class="card" onclick="showTool('hashTool')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">Hash Generator</div>
+                    <p class="card-desc">MD5, SHA family, and Blake2 hashes</p>
+                </div>
+                <div class="card" onclick="showTool('baseConvert')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">Base Converter</div>
+                    <p class="card-desc">Convert numbers between bases 2 through 36</p>
+                </div>
+                <div class="card" onclick="showTool('regexTool')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">Regex Search</div>
+                    <p class="card-desc">Run regex patterns against pasted text</p>
+                </div>
+                <div class="card" onclick="showTool('jsonFormat')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">JSON Formatter</div>
+                    <p class="card-desc">Validate and pretty-print JSON</p>
+                </div>
+                <div class="card" onclick="showTool('urlParse')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">URL Parser</div>
+                    <p class="card-desc">Split URLs into scheme, host, path, query, and fragment</p>
+                </div>
+                <div class="card" onclick="showTool('flagExtract')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">Flag Extractor</div>
+                    <p class="card-desc">Find CTF-style flags in logs or decoded output</p>
+                </div>
+            </div>
+            <div id="encodeDecode" class="tool-panel" style="display:none"></div>
+            <div id="hashTool"     class="tool-panel" style="display:none"></div>
+            <div id="baseConvert"  class="tool-panel" style="display:none"></div>
+            <div id="regexTool"    class="tool-panel" style="display:none"></div>
+            <div id="jsonFormat"   class="tool-panel" style="display:none"></div>
+            <div id="urlParse"     class="tool-panel" style="display:none"></div>
+            <div id="flagExtract"  class="tool-panel" style="display:none"></div>
+        </div>
+
+        <!-- ABOUT -->
+        <div class="view" id="about">
+            <div class="view-header">
+                <h2>Info BlackBox-Core</h2>
+                <p>Python-powered CTF backend engine</p>
+            </div>
+            <div id="about">
+                <div class="about-card">
+                    <h3> What is BlackBox-Core?</h3>
+                    <p>BlackBox-Core is the Python backend companion to BlackBox. It handles everything that requires a server - RSA attacks, live network scanning, file forensics with proper libraries, and web vulnerability testing.</p>
+                </div>
+                <div class="about-card">
+                    <h3> Setup</h3>
+                    <ul class="feature-list">
+                        <li>pip install -r requirements.txt</li>
+                        <li>Add API keys to .env file</li>
+                        <li>python app.py</li>
+                        <li>Open http://127.0.0.1:5000</li>
+                    </ul>
+                </div>
+                <div class="about-card">
+                    <h3> API Keys (optional)</h3>
+                    <ul class="feature-list">
+                        <li>SHODAN_API_KEY - for Shodan host lookup</li>
+                        <li>ABUSEIPDB_API_KEY - for IP reputation</li>
+                        <li>VIRUSTOTAL_API_KEY - for file/hash scanning</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        </div><!-- end .page -->
+    </main>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="/static/libs/crypto-js.min.js"></script>
+<script src="/static/js/app.js"></script>
+<script src="/static/js/tools/crypto.js"></script>
+<script src="/static/js/tools/network.js"></script>
+<script src="/static/js/tools/forensics.js"></script>
+<script src="/static/js/tools/web.js"></script>
+<script src="/static/js/tools/misc.js"></script>
+</body>
+</html>
