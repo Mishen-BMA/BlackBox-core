@@ -254,10 +254,13 @@ function buildFlagExtract(panel){
         <input type="text" id="flagFormat" placeholder="flag{} or picoCTF{...}">
         <label>Regex override (optional)</label>
         <input type="text" id="flagPattern" placeholder="[A-Za-z0-9_]+\\{[^\\}]+\\}">
+        <label>Known keys / passwords (optional, one per line)</label>
+        <textarea id="flagKeys" style="min-height:80px;" placeholder="Paste candidate keys here, or let the scanner extract them from text..."></textarea>
         <label>Text</label>
         <textarea id="flagText" style="min-height:200px;" placeholder="Paste decoded output, logs, source, or strings..."></textarea>
         <div class="button-group">
             <button class="btn btn-run" onclick="runFlagExtract()">Extract Flags</button>
+            <button class="btn btn-outline" onclick="runDeepFlagExtract()">Deep Scan</button>
             <button class="btn btn-outline" onclick="clearFlagExtract()">Clear</button>
         </div>
         ${createOutput('flagOutput', 'Flags')}
@@ -280,9 +283,24 @@ async function runFlagExtract(){
     }
 }
 
+async function runDeepFlagExtract(){
+    const flagFormat = document.getElementById('flagFormat').value.trim();
+    const pattern = document.getElementById('flagPattern').value.trim();
+    const keys = document.getElementById('flagKeys').value;
+    const text = document.getElementById('flagText').value;
+    setLoading('flagOutput');
+    const res = await deepFindFlags(text, flagFormat, pattern, keys);
+    if(res.status === 'ok'){
+        setOutput('flagOutput', deepFlagResultsHtml(text, res.data), true);
+    } else {
+        setOutput('flagOutput', `Error: ${res.error}`);
+    }
+}
+
 function clearFlagExtract(){
     document.getElementById('flagFormat').value = '';
     document.getElementById('flagPattern').value = '';
+    document.getElementById('flagKeys').value = '';
     document.getElementById('flagText').value = '';
     resetOutput('flagOutput');
 }

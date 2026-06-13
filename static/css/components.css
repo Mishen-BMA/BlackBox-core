@@ -467,6 +467,61 @@ label{
     padding:       0 3px;
 }
 
+.scan-section{
+    margin-top: 16px;
+}
+
+.scan-card{
+    border:        1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background:    rgba(0, 0, 0, 0.16);
+    padding:       12px;
+    margin-bottom: 10px;
+}
+
+.scan-card strong,
+.scan-card span{
+    display: block;
+}
+
+.scan-card strong{
+    color: var(--primary);
+}
+
+.scan-card span{
+    color:       var(--muted-light);
+    font-size:   12px;
+    margin-bottom: 8px;
+}
+
+.scan-card pre{
+    margin:      0;
+    white-space: pre-wrap;
+    font-family: var(--font-mono);
+}
+
+.key-chip-list{
+    display:   flex;
+    flex-wrap: wrap;
+    gap:       8px;
+}
+
+.key-chip-list button{
+    border:        1px solid var(--border);
+    border-radius: 999px;
+    background:    var(--panel-light);
+    color:         var(--text);
+    cursor:        pointer;
+    font-family:   var(--font-mono);
+    font-size:     12px;
+    padding:       6px 10px;
+}
+
+.key-chip-list button:hover{
+    border-color: var(--primary);
+    color:        var(--primary);
+}
+
 /* =========================
    TABS
 ========================= */

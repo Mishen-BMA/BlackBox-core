@@ -1,8 +1,10 @@
 import base64
+import binascii
 import hashlib
 import html
 import json
 import re
+import string
 import urllib.parse
 
 from flask import Blueprint, jsonify, request
@@ -156,6 +158,219 @@ def extract_flag_matches(text, pattern):
     return matches
 
 
+def printable_ratio(text):
+    if not text:
+        return 0
+    printable = set(string.printable)
+    return sum(1 for char in text if char in printable) / len(text)
+
+
+def limited_text(value, limit=2000):
+    value = value or ""
+    return value[:limit] + ("..." if len(value) > limit else "")
+
+
+def decode_bytes(data):
+    try:
+        return data.decode("utf-8")
+    except Exception:
+        return data.decode("latin-1", errors="replace")
+
+
+def maybe_add_variant(variants, seen, method, text, source="input"):
+    text = text or ""
+    if len(text) < 3 or text in seen:
+        return
+    if printable_ratio(text) < 0.65:
+        return
+    seen.add(text)
+    variants.append({"method": method, "source": source, "text": text})
+
+
+def caesar_shift(text, shift):
+    out = []
+    for char in text:
+        if "a" <= char <= "z":
+            out.append(chr((ord(char) - 97 + shift) % 26 + 97))
+        elif "A" <= char <= "Z":
+            out.append(chr((ord(char) - 65 + shift) % 26 + 65))
+        else:
+            out.append(char)
+    return "".join(out)
+
+
+def xor_decrypt(data, key):
+    key_bytes = key.encode("utf-8", errors="ignore")
+    if not key_bytes:
+        return ""
+    return decode_bytes(bytes(byte ^ key_bytes[i % len(key_bytes)] for i, byte in enumerate(data)))
+
+
+def extract_key_candidates(text):
+    candidates = []
+    patterns = [
+        r"(?i)\b(?:key|password|passwd|pass|pwd|secret|token)\b\s*[:=]\s*['\"]?([A-Za-z0-9_\-@#$%!.]{3,64})",
+        r"(?i)\b(?:xor|aes|vigenere|zip)\s+key\s*[:=]\s*['\"]?([A-Za-z0-9_\-@#$%!.]{3,64})",
+    ]
+    for pattern in patterns:
+        candidates.extend(re.findall(pattern, text))
+
+    quoted = re.findall(r"['\"]([A-Za-z0-9_\-@#$%!.]{4,32})['\"]", text)
+    candidates.extend(quoted[:50])
+
+    output = []
+    seen = set()
+    for value in candidates:
+        value = value.strip().strip("'\"")
+        if value and value not in seen:
+            seen.add(value)
+            output.append(value)
+        if len(output) >= 100:
+            break
+    return output
+
+
+def extract_encoded_chunks(text):
+    chunks = []
+    base64_re = r"(?<![A-Za-z0-9+/=])([A-Za-z0-9+/]{12,}={0,2})(?![A-Za-z0-9+/=])"
+    base32_re = r"(?<![A-Z2-7=])([A-Z2-7]{16,}={0,6})(?![A-Z2-7=])"
+    hex_re = r"(?<![A-Fa-f0-9])((?:0x)?[A-Fa-f0-9]{16,})(?![A-Fa-f0-9])"
+    binary_re = r"((?:[01]{8}\s*){3,})"
+
+    for label, pattern in [
+        ("base64", base64_re),
+        ("base32", base32_re),
+        ("hex", hex_re),
+        ("binary", binary_re),
+    ]:
+        for match in re.finditer(pattern, text):
+            chunks.append({"type": label, "value": match.group(1), "start": match.start(1), "end": match.end(1)})
+            if len(chunks) >= 200:
+                return chunks
+    return chunks
+
+
+def decode_chunk(chunk):
+    value = chunk["value"]
+    try:
+        if chunk["type"] == "base64":
+            cleaned = re.sub(r"\s+", "", value)
+            return base64.b64decode(cleaned + ("=" * ((-len(cleaned)) % 4)), validate=False)
+        if chunk["type"] == "base32":
+            cleaned = re.sub(r"\s+", "", value.upper())
+            return base64.b32decode(cleaned + ("=" * ((-len(cleaned)) % 8)))
+        if chunk["type"] == "hex":
+            cleaned = value.lower().replace("0x", "")
+            if len(cleaned) % 2:
+                return b""
+            return bytes.fromhex(cleaned)
+        if chunk["type"] == "binary":
+            bits = re.sub(r"\s+", "", value)
+            return bytes(int(bits[i:i+8], 2) for i in range(0, len(bits), 8))
+    except (ValueError, binascii.Error):
+        return b""
+    return b""
+
+
+def build_decode_variants(text):
+    variants = []
+    seen = {text}
+
+    for method, decoded in [
+        ("url decode", urllib.parse.unquote(text)),
+        ("html decode", html.unescape(text)),
+        ("reverse", text[::-1]),
+        ("rot13", caesar_shift(text, 13)),
+    ]:
+        maybe_add_variant(variants, seen, method, decoded)
+
+    for shift in range(1, 26):
+        maybe_add_variant(variants, seen, f"caesar {shift}", caesar_shift(text, shift))
+
+    for chunk in extract_encoded_chunks(text):
+        raw = decode_chunk(chunk)
+        if not raw:
+            continue
+        decoded = decode_bytes(raw)
+        maybe_add_variant(variants, seen, f"{chunk['type']} decode", decoded, chunk["value"][:80])
+
+        for method, nested in [
+            ("nested url decode", urllib.parse.unquote(decoded)),
+            ("nested html decode", html.unescape(decoded)),
+            ("nested rot13", caesar_shift(decoded, 13)),
+        ]:
+            maybe_add_variant(variants, seen, method, nested, chunk["value"][:80])
+
+    return variants[:300]
+
+
+def deep_flag_scan(text, flag_format="", pattern="", keys=None):
+    text = text or ""
+    keys = keys or []
+    pattern = (pattern or "").strip() or flag_format_to_regex(flag_format)
+
+    direct_matches = extract_flag_matches(text, pattern)
+    key_candidates = []
+    for key in list(keys) + extract_key_candidates(text):
+        key = (key or "").strip()
+        if key and key not in key_candidates:
+            key_candidates.append(key)
+        if len(key_candidates) >= 100:
+            break
+
+    discoveries = []
+    for variant in build_decode_variants(text):
+        matches = extract_flag_matches(variant["text"], pattern)
+        if matches:
+            discoveries.append({
+                "method": variant["method"],
+                "source": variant["source"],
+                "text": limited_text(variant["text"]),
+                "matches": matches[:50],
+                "count": len(matches),
+            })
+
+    decryptions = []
+    chunks = extract_encoded_chunks(text)
+    for chunk in chunks[:80]:
+        raw = decode_chunk(chunk)
+        if not raw:
+            continue
+        for key in key_candidates[:40]:
+            plain = xor_decrypt(raw, key)
+            if printable_ratio(plain) < 0.7:
+                continue
+            matches = extract_flag_matches(plain, pattern)
+            if matches:
+                decryptions.append({
+                    "method": f"xor with {chunk['type']} blob",
+                    "key": key,
+                    "source": chunk["value"][:80],
+                    "text": limited_text(plain),
+                    "matches": matches[:50],
+                    "count": len(matches),
+                })
+                if len(decryptions) >= 100:
+                    break
+
+    return {
+        "pattern": pattern,
+        "format": flag_format,
+        "direct": {
+            "count": len(direct_matches),
+            "matches": direct_matches[:100],
+            "flags": [match["text"] for match in direct_matches[:100]],
+        },
+        "decoded": discoveries[:100],
+        "decryptions": decryptions[:100],
+        "key_candidates": key_candidates[:100],
+        "notes": [
+            "Auto scan tries plaintext, URL/HTML, Base64/Base32/hex/binary, ROT13, Caesar shifts, and XOR against extracted/provided keys.",
+            "Strong encryption such as AES needs the exact key, mode, IV, and ciphertext format.",
+        ],
+    }
+
+
 @utils_bp.post("/encode-decode")
 def encode_decode_route():
     data = request.get_json(silent=True) or {}
@@ -244,5 +459,21 @@ def extract_flags_route():
             "pattern": pattern,
             "format": flag_format,
         })
+    except re.error as exc:
+        return error(f"Invalid regex: {exc}")
+
+
+@utils_bp.post("/deep-flag-scan")
+def deep_flag_scan_route():
+    data = request.get_json(silent=True) or {}
+    keys_raw = data.get("keys", "")
+    keys = keys_raw if isinstance(keys_raw, list) else keys_raw.splitlines()
+    try:
+        return success(deep_flag_scan(
+            data.get("text", ""),
+            data.get("format", ""),
+            data.get("pattern", ""),
+            keys,
+        ))
     except re.error as exc:
         return error(f"Invalid regex: {exc}")

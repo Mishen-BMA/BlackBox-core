@@ -121,6 +121,64 @@ async function findFlags(text, flagFormat='', pattern=''){
     return apiPost('/api/utils/extract-flags', {text, format: flagFormat, pattern});
 }
 
+async function deepFindFlags(text, flagFormat='', pattern='', keys=''){
+    return apiPost('/api/utils/deep-flag-scan', {text, format: flagFormat, pattern, keys});
+}
+
+function deepFlagResultsHtml(sourceText, data){
+    const direct = data?.direct || {count: 0, matches: []};
+    const decoded = data?.decoded || [];
+    const decryptions = data?.decryptions || [];
+    const keys = data?.key_candidates || [];
+
+    const sections = [
+        flagResultsHtml(sourceText, {
+            count: direct.count,
+            matches: direct.matches || [],
+            pattern: data?.pattern || ''
+        }, {
+            title: 'Plaintext flags',
+            sourceLabel: 'Original Text'
+        })
+    ];
+
+    if(decoded.length){
+        sections.push(`<div class="scan-section"><div class="output-label">Decoded Hits</div>${
+            decoded.map(item => `
+                <div class="scan-card">
+                    <strong>${escapeHtml(item.method)}</strong>
+                    <span>${escapeHtml(item.count)} match(es)</span>
+                    <pre>${highlightMatches(item.text, item.matches || [])}</pre>
+                </div>
+            `).join('')
+        }</div>`);
+    }
+
+    if(decryptions.length){
+        sections.push(`<div class="scan-section"><div class="output-label">Auto-Decrypted Hits</div>${
+            decryptions.map(item => `
+                <div class="scan-card">
+                    <strong>${escapeHtml(item.method)}</strong>
+                    <span>key: ${escapeHtml(item.key)} | ${escapeHtml(item.count)} match(es)</span>
+                    <pre>${highlightMatches(item.text, item.matches || [])}</pre>
+                </div>
+            `).join('')
+        }</div>`);
+    }
+
+    sections.push(`<div class="scan-section"><div class="output-label">Possible Keys / Passwords</div>${
+        keys.length
+            ? `<div class="key-chip-list">${keys.map(key => `<button type="button" data-key="${escapeHtml(key)}" onclick="copyText(this.dataset.key, this)">${escapeHtml(key)}</button>`).join('')}</div>`
+            : '<div class="flag-empty">No obvious keys found.</div>'
+    }</div>`);
+
+    if(data?.notes?.length){
+        sections.push(`<div class="info-box">${data.notes.map(escapeHtml).join('<br>')}</div>`);
+    }
+
+    return sections.join('');
+}
+
 function setLoading(id){
     const el = document.getElementById(id);
     if(el) el.innerHTML = '<div class="spinner"></div> <span style="color:var(--muted);margin-left:10px;">Processing...</span>';

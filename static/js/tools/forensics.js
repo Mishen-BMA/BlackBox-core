@@ -173,44 +173,123 @@ function buildZipCrack(panel){
         <div class="tool-title"> ZIP Password Cracker</div>
         <label>Upload ZIP File</label>
         <input type="file" id="zipFile" accept=".zip">
-        <label>Wordlist (one password per line)</label>
+        <label>Known ZIP password (optional)</label>
+        <input type="password" id="zipKnownPassword" placeholder="Leave blank to try selected wordlist">
+        <label>Built-in wordlist</label>
+        <select id="zipBuiltinWordlist">
+            <option value="">Loading wordlists...</option>
+        </select>
+        <label>Custom wordlist (optional, one password per line)</label>
         <textarea id="zipWordlist" style="min-height:120px;"
             placeholder="password&#10;123456&#10;admin&#10;secret&#10;..."></textarea>
+        <label>Flag format for deep scan (optional)</label>
+        <input type="text" id="zipFlagFormat" placeholder="flag{} or picoCTF{...}">
+        <label>Regex override for deep scan (optional)</label>
+        <input type="text" id="zipFlagPattern" placeholder="[A-Za-z0-9_]+\\{[^\\}]+\\}">
+        <label>Known keys for encrypted blobs (optional, one per line)</label>
+        <textarea id="zipKnownKeys" style="min-height:80px;" placeholder="Paste candidate XOR/password keys here..."></textarea>
         <div class="button-group">
             <button class="btn btn-run" onclick="runZipCrack()">Crack ZIP</button>
+            <button class="btn btn-outline" onclick="runZipDeepScan()">Deep Scan ZIP</button>
             <button class="btn btn-outline" onclick="clearZipCrack()">Clear</button>
         </div>
         ${createOutput('zipOutput','Crack Result')}
     </div>`;
+    loadZipWordlists();
+}
+
+async function loadZipWordlists(){
+    const select = document.getElementById('zipBuiltinWordlist');
+    if(!select) return;
+    try{
+        const r = await fetch('/api/forensics/wordlists');
+        const res = await r.json();
+        if(res.status === 'ok'){
+            const lists = res.data.wordlists || [];
+            select.innerHTML = '<option value="">Custom only</option>' + lists.map(w =>
+                `<option value="${escapeHtml(w.id)}">${escapeHtml(w.name)} (${w.count} words)</option>`
+            ).join('');
+            const rockyou = lists.find(w => w.id === 'rockyou-mini');
+            if(rockyou) select.value = 'rockyou-mini';
+        } else {
+            select.innerHTML = '<option value="">Custom only</option>';
+        }
+    } catch(e){
+        select.innerHTML = '<option value="">Custom only</option>';
+    }
 }
 
 async function runZipCrack(){
     const file     = document.getElementById('zipFile').files[0];
+    const builtin  = document.getElementById('zipBuiltinWordlist').value;
     const wordlist = document.getElementById('zipWordlist').value.trim();
     if(!file){ showToast('Upload a ZIP file','error'); return; }
-    if(!wordlist){ showToast('Enter a wordlist','error'); return; }
+    if(!builtin && !wordlist){ showToast('Choose a built-in list or enter a wordlist','error'); return; }
     setLoading('zipOutput');
     const fd = new FormData();
     fd.append('file', file);
+    fd.append('builtin_wordlist', builtin);
     fd.append('wordlist', wordlist);
     const res = await apiUploadForm('/api/forensics/zip_crack', fd);
     if(res.status === 'ok'){
         const d = res.data;
         if(d.found){
-            setOutput('zipOutput', `OK PASSWORD FOUND!\n\nPassword: ${d.password}\nTried: ${d.tried} passwords`);
+            setOutput('zipOutput', `OK PASSWORD FOUND!\n\nPassword: ${d.password}\nTried: ${d.tried} passwords\nWordlist: ${d.wordlist || 'custom'}`);
             showToast(`Password found: ${d.password}`);
         } else if(d.protected === false){
             setOutput('zipOutput', 'ZIP is not password protected');
         } else {
-            setOutput('zipOutput', `NO Not found\nTried: ${d.tried} passwords\n\n${d.message || ''}`);
+            setOutput('zipOutput', `NO Not found\nTried: ${d.tried} passwords\nWordlist: ${d.wordlist || 'custom'}\n\n${d.message || ''}`);
         }
     } else {
         setOutput('zipOutput', `Error: ${res.error}`);
     }
 }
+
+async function runZipDeepScan(){
+    const file = document.getElementById('zipFile').files[0];
+    const builtin = document.getElementById('zipBuiltinWordlist').value;
+    const wordlist = document.getElementById('zipWordlist').value.trim();
+    const password = document.getElementById('zipKnownPassword').value.trim();
+    const flagFormat = document.getElementById('zipFlagFormat').value.trim();
+    const pattern = document.getElementById('zipFlagPattern').value.trim();
+    const keys = document.getElementById('zipKnownKeys').value;
+    if(!file){ showToast('Upload a ZIP file','error'); return; }
+    if(!password && !builtin && !wordlist){ showToast('Enter a ZIP password or choose a wordlist','error'); return; }
+    setLoading('zipOutput');
+
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('password', password);
+    fd.append('builtin_wordlist', builtin);
+    fd.append('wordlist', wordlist);
+    fd.append('format', flagFormat);
+    fd.append('pattern', pattern);
+    fd.append('keys', keys);
+
+    const res = await apiUploadForm('/api/forensics/zip_deep_scan', fd);
+    if(res.status === 'ok'){
+        const d = res.data;
+        const files = (d.files || []).map(f => `${f.name} (${f.size} bytes, ${f.string_count} strings)`).join('\n');
+        const header = `ZIP opened${d.password_used ? ` with password: ${d.password_used}` : ' without password'}\nPasswords tried: ${d.password_tried}\n\nFILES:\n${files || '(none)'}\n\n`;
+        setOutput('zipOutput',
+            `<div class="plain-output-block">${escapeHtml(header)}</div>` +
+            deepFlagResultsHtml(d.combined_text || '', d.scan),
+            true
+        );
+    } else {
+        setOutput('zipOutput', `Error: ${res.error}`);
+    }
+}
+
 function clearZipCrack(){
     document.getElementById('zipFile').value='';
+    document.getElementById('zipKnownPassword').value='';
+    document.getElementById('zipBuiltinWordlist').value='rockyou-mini';
     document.getElementById('zipWordlist').value='';
+    document.getElementById('zipFlagFormat').value='';
+    document.getElementById('zipFlagPattern').value='';
+    document.getElementById('zipKnownKeys').value='';
     resetOutput('zipOutput');
 }
 

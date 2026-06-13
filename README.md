@@ -1,41 +1,52 @@
-# BlackBox Core
+# BlackBox-Core
 
-Advanced CTF operations framework built for file intelligence, forensics, reverse engineering, cryptography, and challenge analysis.
-
-BlackBox Core is a FastAPI scaffold for CTF and security challenge helper tooling.
+Flask-powered CTF helper toolkit for cryptography, network recon, forensics, web testing, and utility workflows.
 
 ## Quick Start
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-./start.sh
-```
-
-On Windows PowerShell:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-uvicorn server:app --reload
+python -m pip install -r requirements.txt
+python app.py
 ```
 
-API health check:
+Open:
 
 ```text
-GET /health
+http://127.0.0.1:5000
+```
+
+## Configuration
+
+Create or edit `.env`:
+
+```text
+SECRET_KEY=change-this-to-a-random-secret
+PORT=5000
+REQUIRE_API_KEY=false
+API_KEYS=key1,key2
+UPLOAD_FOLDER=temp/uploads
+MAX_CONTENT_LENGTH=104857600
+ENABLE_RATE_LIMIT=true
+RATE_LIMIT_PER_MINUTE=60
 ```
 
 ## Layout
 
-- `config/` stores application settings, constants, and safe tool allowlists.
-- `modules/` contains CTF helper modules by challenge category.
-- `utils/` contains shared helpers, validation, conversion, and logging utilities.
-- `models/` contains Pydantic request and response schemas.
-- `middleware/` contains authentication, rate limiting, and request logging.
-- `workers/` contains long-running or background task helpers.
-- `wordlists/` and `payloads/` contain local testing dictionaries.
-- `data/`, `logs/`, `temp/`, and `uploads/` are runtime directories.
+- `app.py` - Flask main app
+- `core/` - backend modules
+- `templates/` - Flask HTML templates
+- `static/css/` - interface styles
+- `static/js/` - frontend tool logic
+- `static/libs/` - local browser libraries
+- `assets/wordlists/` - built-in password wordlists for cracking tools
 
+## Built-In Wordlists
+
+The ZIP Password Cracker can use these local lists:
+
+- `rockyou-mini.txt` - compact common-password list
+- `ctf-common.txt` - CTF-focused defaults
+
+Add more `.txt` wordlists to `assets/wordlists/`; they will appear in the ZIP cracker dropdown.

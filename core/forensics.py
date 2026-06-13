@@ -1,5 +1,5 @@
 from flask import Blueprint, request
-from core.utils import success, error, safe_decode
+from core.utils import success, error, safe_decode, deep_flag_scan
 import os
 import io
 import base64
@@ -11,6 +11,9 @@ import math
 forensics_bp = Blueprint('forensics', __name__)
 
 UPLOAD_FOLDER = 'uploads'
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+WORDLIST_DIR = os.path.join(BASE_DIR, 'assets', 'wordlists')
+MAX_WORDLIST_WORDS = 50000
 
 
 # -- FILE UPLOAD HELPER --------------------------------------------------------
@@ -22,6 +25,127 @@ def get_uploaded_file():
         return None, error('No file selected')
     data = f.read()
     return data, None
+
+
+def available_wordlists():
+    if not os.path.isdir(WORDLIST_DIR):
+        return []
+
+    lists = []
+    for name in sorted(os.listdir(WORDLIST_DIR)):
+        path = os.path.join(WORDLIST_DIR, name)
+        if not name.endswith('.txt') or not os.path.isfile(path):
+            continue
+        list_id = os.path.splitext(name)[0]
+        try:
+            with open(path, 'r', encoding='utf-8', errors='ignore') as handle:
+                count = sum(1 for line in handle if line.strip())
+        except OSError:
+            count = 0
+        lists.append({
+            'id': list_id,
+            'name': list_id.replace('-', ' ').title(),
+            'filename': name,
+            'count': count,
+        })
+    return lists
+
+
+def load_wordlist(list_id):
+    if not list_id:
+        return []
+
+    allowed = {item['id']: item['filename'] for item in available_wordlists()}
+    filename = allowed.get(list_id)
+    if not filename:
+        raise ValueError('Unknown built-in wordlist')
+
+    path = os.path.join(WORDLIST_DIR, filename)
+    with open(path, 'r', encoding='utf-8', errors='ignore') as handle:
+        return [line.strip() for line in handle if line.strip()]
+
+
+def unique_words(words):
+    seen = set()
+    output = []
+    for word in words:
+        if word in seen:
+            continue
+        seen.add(word)
+        output.append(word)
+    return output
+
+
+def build_password_words(builtin_id, wordlist_raw):
+    custom_words = [w.strip() for w in (wordlist_raw or '').splitlines() if w.strip()]
+    builtin_words = load_wordlist(builtin_id) if builtin_id else []
+    words = unique_words(builtin_words + custom_words)
+    if len(words) > MAX_WORDLIST_WORDS:
+        raise ValueError(f'Wordlist too large (max {MAX_WORDLIST_WORDS:,} words)')
+    return words
+
+
+def printable_text_ratio(text):
+    if not text:
+        return 0
+    printable = set('\t\r\n' + ''.join(chr(i) for i in range(32, 127)))
+    return sum(1 for char in text if char in printable) / len(text)
+
+
+def read_zip_entries(zip_data, password='', words=None, max_total_bytes=2_000_000):
+    words = words or []
+    try:
+        import pyzipper
+        zf = pyzipper.AESZipFile(io.BytesIO(zip_data))
+    except Exception:
+        zf = zipfile.ZipFile(io.BytesIO(zip_data))
+    names = [name for name in zf.namelist() if not name.endswith('/')]
+    if not names:
+        raise ValueError('ZIP archive is empty')
+
+    candidates = []
+    if password:
+        candidates.append(password)
+    candidates.append('')
+    candidates.extend(words)
+
+    password_used = ''
+    tried = 0
+    last_error = None
+    for candidate in unique_words(candidates):
+        tried += 1
+        pwd = candidate.encode('utf-8') if candidate else None
+        try:
+            zf.read(names[0], pwd=pwd)
+            password_used = candidate
+            break
+        except Exception as exc:
+            last_error = exc
+    else:
+        raise ValueError(f'Could not open ZIP with provided passwords: {last_error}')
+
+    files = []
+    total = 0
+    for name in names[:25]:
+        if total >= max_total_bytes:
+            break
+        try:
+            data = zf.read(name, pwd=password_used.encode('utf-8') if password_used else None)
+        except Exception:
+            continue
+        data = data[:max_total_bytes - total]
+        total += len(data)
+        strings = extract_strings(data, min_len=4)
+        text = safe_decode(data)
+        if printable_text_ratio(text) < 0.6 and strings:
+            text = '\n'.join(strings)
+        files.append({
+            'name': name,
+            'size': len(data),
+            'text': text,
+            'string_count': len(strings),
+        })
+    return files, password_used, tried
 
 
 # -- FILE ANALYSIS -------------------------------------------------------------
@@ -303,21 +427,30 @@ def entropy_analysis():
 
 
 # -- ZIP PASSWORD CRACKER ------------------------------------------------------
+@forensics_bp.route('/wordlists', methods=['GET'])
+def wordlists_route():
+    """List built-in password wordlists."""
+    return success({'wordlists': available_wordlists()})
+
+
 @forensics_bp.route('/zip_crack', methods=['POST'])
 def zip_crack():
-    """Crack ZIP file password using provided wordlist."""
+    """Crack ZIP file password using built-in and/or provided wordlist."""
     if 'file' not in request.files:
         return error('No ZIP file uploaded')
 
+    builtin_id = request.form.get('builtin_wordlist', '').strip()
     wordlist_raw = request.form.get('wordlist', '')
-    if not wordlist_raw:
-        return error('Provide a wordlist (newline separated)')
+
+    try:
+        words = build_password_words(builtin_id, wordlist_raw)
+    except ValueError as exc:
+        return error(str(exc))
+
+    if not words:
+        return error('Choose a built-in wordlist or provide a custom wordlist')
 
     zip_data = request.files['file'].read()
-    words    = [w.strip() for w in wordlist_raw.split('\n') if w.strip()]
-
-    if len(words) > 50000:
-        return error('Wordlist too large (max 50,000 words)')
 
     try:
         import pyzipper
@@ -341,6 +474,7 @@ def zip_crack():
                     'found':    True,
                     'password': word,
                     'tried':    words.index(word) + 1,
+                    'wordlist': builtin_id or 'custom',
                 })
             except Exception:
                 pass
@@ -348,6 +482,7 @@ def zip_crack():
         return success({
             'found':   False,
             'tried':   len(words),
+            'wordlist': builtin_id or 'custom',
             'message': 'Password not found in wordlist',
         })
 
@@ -361,12 +496,65 @@ def zip_crack():
             for word in words:
                 try:
                     zf.read(names[0], pwd=word.encode())
-                    return success({ 'found': True, 'password': word })
+                    return success({
+                        'found': True,
+                        'password': word,
+                        'tried': words.index(word) + 1,
+                        'wordlist': builtin_id or 'custom',
+                    })
                 except Exception:
                     pass
-            return success({ 'found': False, 'tried': len(words) })
+            return success({
+                'found': False,
+                'tried': len(words),
+                'wordlist': builtin_id or 'custom',
+            })
         except Exception as ex2:
             return error(f'ZIP crack error: {str(ex2)}')
+
+
+@forensics_bp.route('/zip_deep_scan', methods=['POST'])
+def zip_deep_scan():
+    """Open ZIP contents and deep-scan extracted text for flags."""
+    if 'file' not in request.files:
+        return error('No ZIP file uploaded')
+
+    zip_data = request.files['file'].read()
+    password = request.form.get('password', '').strip()
+    builtin_id = request.form.get('builtin_wordlist', '').strip()
+    wordlist_raw = request.form.get('wordlist', '')
+    flag_format = request.form.get('format', '')
+    pattern = request.form.get('pattern', '')
+    keys = request.form.get('keys', '').splitlines()
+
+    try:
+        words = build_password_words(builtin_id, wordlist_raw)
+        files, password_used, tried = read_zip_entries(zip_data, password, words)
+    except ValueError as exc:
+        return error(str(exc))
+    except Exception as exc:
+        return error(f'ZIP scan error: {exc}')
+
+    combined = '\n\n'.join(
+        f"--- {item['name']} ({item['size']} bytes) ---\n{item['text']}"
+        for item in files
+    )
+    scan = deep_flag_scan(combined, flag_format, pattern, keys + ([password_used] if password_used else []))
+
+    return success({
+        'password_used': password_used,
+        'password_tried': tried,
+        'files': [
+            {
+                'name': item['name'],
+                'size': item['size'],
+                'string_count': item['string_count'],
+            }
+            for item in files
+        ],
+        'combined_text': combined[:50000],
+        'scan': scan,
+    })
 
 
 # -- LSB STEGANOGRAPHY ---------------------------------------------------------
