@@ -371,6 +371,280 @@ def deep_flag_scan(text, flag_format="", pattern="", keys=None):
     }
 
 
+TOOL_FLOWS = {
+    "forensics": {
+        "label": "Forensics",
+        "keywords": [
+            "forensics", "file", "dump", "deleted", "recover", "image", "photo", "png", "jpg", "jpeg",
+            "pdf", "zip", "archive", "pcap", "memory", "disk", "metadata", "strings", "hex", "entropy",
+            "corrupt", "hidden file", "evidence", "surveillance", "footage", "ledger",
+        ],
+        "flow": [
+            ("Forensics", "Full File Analysis", "Upload the attachment and review magic bytes, entropy, hashes, strings, and the hex preview."),
+            ("Forensics", "Strings Extractor", "Filter for the flag prefix plus words such as key, pass, secret, token, admin, and debug."),
+            ("Utilities", "Flag Extractor", "Run Deep Scan on extracted strings using the challenge flag format."),
+            ("Forensics", "Hex Dump", "Check offsets, file signatures, appended data, and mismatched extensions."),
+            ("Forensics", "Entropy Analysis", "Decide whether the data is likely plaintext, compressed, packed, or encrypted."),
+        ],
+    },
+    "steganography": {
+        "label": "Steganography",
+        "keywords": [
+            "stego", "steganography", "hidden", "lsb", "least significant", "image", "audio", "song",
+            "frequency", "spectrogram", "bella", "metadata", "pixel", "wav", "mp3", "png", "jpg",
+        ],
+        "flow": [
+            ("Forensics", "Full File Analysis", "Identify the real file type, entropy, hashes, strings, and obvious embedded hints."),
+            ("Forensics", "Strings Extractor", "Look for comments, keys, filenames, and visible flag fragments."),
+            ("Forensics", "LSB Steganography", "Try 1 bit per channel first, then 2 and 4 if the output is noisy."),
+            ("Forensics", "Hex Dump", "Look for appended archives or data after image end markers."),
+            ("Utilities", "Flag Extractor", "Deep Scan every extracted text blob with the event flag format."),
+        ],
+        "external": ["Use a spectrogram tool for audio frequency clues.", "Use exiftool/binwalk/stegsolve if BlackBox output points to metadata or appended payloads."],
+    },
+    "crypto": {
+        "label": "Cryptography",
+        "keywords": [
+            "crypto", "cipher", "decode", "decrypt", "rsa", "aes", "xor", "caesar", "rot", "vigenere",
+            "hash", "md5", "sha1", "sha256", "base64", "base32", "hex", "binary", "modulus", "public key",
+            "private key", "wiener", "hastad", "broadcast", "lockdown", "ciphertext", "plaintext",
+        ],
+        "flow": [
+            ("Utilities", "Encode / Decode", "Try obvious encodings such as Base64, Base32, hex, URL, HTML, binary, and reverse/ROT variants via Deep Scan."),
+            ("Utilities", "Flag Extractor", "Run Deep Scan with any provided keys or passwords."),
+            ("Cryptography", "RSA Key Parser", "If a PEM key is provided, extract n, e, p, q, and d when present."),
+            ("Cryptography", "RSA Large N Factor", "If n is small/weak enough, factor it and carry p/q into RSA Decrypt."),
+            ("Cryptography", "RSA Wiener Attack", "If e is large or the prompt hints at a small private exponent, try Wiener."),
+            ("Cryptography", "RSA Hastad Broadcast", "If the same plaintext is encrypted under multiple moduli with small e, use Hastad."),
+            ("Cryptography", "RSA Decrypt p q known", "Decrypt when p, q, e, and c are known."),
+        ],
+    },
+    "web": {
+        "label": "Web Exploitation",
+        "keywords": [
+            "web", "website", "login", "portal", "api", "endpoint", "cookie", "session", "jwt", "xss",
+            "sqli", "sql injection", "cors", "csrf", "ssrf", "redirect", "http", "request", "header",
+            "front door", "authentication", "bypass", "admin", "token", "rest", "parameter",
+        ],
+        "flow": [
+            ("Web Testing", "HTTP Request Tester", "Fetch the page/API, inspect status, redirects, headers, cookies, and body."),
+            ("Utilities", "URL Parser", "Break the URL into host, path, query parameters, and fragments."),
+            ("Utilities", "Flag Extractor", "Deep Scan page source, API JSON, comments, scripts, and response bodies."),
+            ("Web Testing", "SQLi Scanner", "Test only challenge parameters for SQL injection indicators."),
+            ("Web Testing", "XSS Tester", "Check reflected parameters for unencoded payload reflection."),
+            ("Web Testing", "CORS Tester", "Use on API endpoints that handle sensitive data or credentials."),
+            ("Web Testing", "SSRF Payload Generator", "Use only when the challenge has an explicit URL fetch/import/proxy feature."),
+        ],
+    },
+    "network": {
+        "label": "Network Recon",
+        "keywords": [
+            "network", "dns", "domain", "subdomain", "ip", "port", "service", "banner", "ssl", "certificate",
+            "whois", "recon", "host", "server", "frequency", "traffic", "packet", "pcap", "wire",
+        ],
+        "flow": [
+            ("Network Recon", "DNS Lookup", "Check A, AAAA, MX, NS, CNAME, SOA, PTR, and especially TXT records."),
+            ("Network Recon", "Security Headers", "Inspect web-facing services for framework and proxy clues."),
+            ("Network Recon", "SSL Certificate", "Review certificate subject and SANs for hidden hostnames."),
+            ("Network Recon", "Subdomain Recon", "Use certificate transparency for scoped domains."),
+            ("Network Recon", "Port Scanner", "Scan a small challenge-specific port list only."),
+            ("Utilities", "Flag Extractor", "Deep Scan DNS records, banners, headers, and fetched text."),
+        ],
+        "external": ["Use Wireshark/tshark for PCAP packet reconstruction, then paste extracted payloads into BlackBox."],
+    },
+    "osint": {
+        "label": "OSINT",
+        "keywords": [
+            "osint", "recon", "dossier", "profile", "social", "username", "email", "geolocation",
+            "location", "inspector", "informant", "leak", "public", "search", "classified",
+        ],
+        "flow": [
+            ("Network Recon", "DNS Lookup", "Inspect DNS records, especially TXT and unusual subdomains."),
+            ("Network Recon", "WHOIS Lookup", "Check registration metadata and nameserver clues."),
+            ("Network Recon", "SSL Certificate", "Review SANs and certificate names for related hosts."),
+            ("Network Recon", "Subdomain Recon", "Find certificate transparency subdomains for scoped domains."),
+            ("Utilities", "Regex Search", "Extract emails, handles, URLs, coordinates, and candidate keys from copied pages."),
+            ("Utilities", "Flag Extractor", "Deep Scan copied bios, source, metadata, and notes."),
+        ],
+        "external": ["Use search engines and platform searches for usernames, handles, emails, images, and exact phrases."],
+    },
+    "programming": {
+        "label": "Programming / Scripting",
+        "keywords": [
+            "programming", "script", "automate", "algorithm", "input", "output", "parse", "compute",
+            "rio", "toolkit", "encoder", "fuzzer", "loop", "generate",
+        ],
+        "flow": [
+            ("Utilities", "JSON Formatter", "Format sample JSON or structured API responses."),
+            ("Utilities", "Regex Search", "Extract repeated tokens, numbers, coordinates, or candidate flags."),
+            ("Utilities", "Base Converter", "Convert binary, decimal, hex, and custom-base values."),
+            ("Utilities", "Encode / Decode", "Validate transformations on small samples before scripting."),
+            ("Utilities", "Flag Extractor", "Deep Scan script output before submitting."),
+        ],
+        "external": ["Write a small local Python script for repeated computation or remote challenge loops."],
+    },
+    "pwn_rev": {
+        "label": "Pwn / Reverse Engineering",
+        "keywords": [
+            "pwn", "binary", "overflow", "rop", "heap", "stack", "shellcode", "elf", "exe", "reverse",
+            "reversing", "disassemble", "decompile", "ghidra", "vault door", "core", "hardened",
+        ],
+        "flow": [
+            ("Forensics", "Full File Analysis", "Identify ELF/PE type, hashes, strings, entropy, and obvious prompts."),
+            ("Forensics", "Strings Extractor", "Search for flag fragments, passwords, function names, and usage strings."),
+            ("Forensics", "Hex Dump", "Check magic bytes and embedded data if the binary appears packed or unusual."),
+            ("Utilities", "Flag Extractor", "Deep Scan extracted strings and program output."),
+        ],
+        "external": ["Use Ghidra/IDA/Binary Ninja for reversing.", "Use gdb/pwndbg, checksec, ROPgadget, and pwntools for exploitation."],
+    },
+    "cloud_mobile_blockchain_ai": {
+        "label": "Specialized Modern Category",
+        "keywords": [
+            "cloud", "aws", "gcp", "azure", "bucket", "iam", "serverless", "snapshot", "mobile",
+            "apk", "android", "ios", "blockchain", "web3", "smart contract", "token", "ledger",
+            "ai", "ml", "prompt injection", "jailbreak", "model", "adversarial",
+        ],
+        "flow": [
+            ("Utilities", "JSON Formatter", "Format configs, API responses, manifests, and logs."),
+            ("Utilities", "URL Parser", "Inspect callback URLs, bucket URLs, RPC endpoints, and query parameters."),
+            ("Utilities", "Encode / Decode", "Decode tokens, Base64 blobs, manifests, and ABI-like text."),
+            ("Utilities", "Regex Search", "Extract keys, addresses, endpoints, package names, hashes, and flags."),
+            ("Utilities", "Flag Extractor", "Deep Scan all recovered text."),
+        ],
+        "external": ["Use cloud CLIs only against provided challenge accounts/resources.", "Use jadx/apktool/MobSF for APKs.", "Use Foundry/Hardhat/cast/ethers for Web3.", "Use direct model/prompt interaction for AI security tasks."],
+    },
+}
+
+
+def _contains_any(text, keywords):
+    return [word for word in keywords if word in text]
+
+
+def _extract_description_clues(text):
+    urls = re.findall(r"https?://[^\s'\"<>]+", text)
+    ips = re.findall(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", text)
+    domains = re.findall(r"\b(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}\b", text)
+    hashes = re.findall(r"\b[a-fA-F0-9]{32}\b|\b[a-fA-F0-9]{40}\b|\b[a-fA-F0-9]{64}\b|\b[a-fA-F0-9]{128}\b", text)
+    files = re.findall(r"\b[\w .-]+\.(?:png|jpe?g|gif|bmp|wav|mp3|mp4|pdf|zip|rar|7z|pcapng?|bin|elf|exe|apk|txt|json|pem|key|csv|db|sqlite)\b", text, re.IGNORECASE)
+    crypto_params = sorted(set(re.findall(r"\b(?:n|e|c|p|q|phi|d)\s*=", text, re.IGNORECASE)))
+    encodings = _contains_any(text.lower(), ["base64", "base32", "hex", "binary", "url encoded", "rot13", "caesar", "xor", "aes", "rsa"])
+    return {
+        "urls": urls[:20],
+        "domains": sorted(set(domains))[:20],
+        "ips": sorted(set(ips))[:20],
+        "hashes": hashes[:20],
+        "files": [item.strip() for item in files[:20]],
+        "crypto_params": crypto_params,
+        "encoding_clues": encodings,
+    }
+
+
+def suggest_challenge_flow(description, flag_format="K4P{...}", category_hint=""):
+    description = (description or "").strip()
+    lower = description.lower()
+    hint = (category_hint or "").strip().lower()
+    if not description:
+        raise ValueError("Provide a challenge description")
+
+    scores = []
+    for category, spec in TOOL_FLOWS.items():
+        hits = _contains_any(lower, spec["keywords"])
+        score = len(hits) * 2
+        if hint and (hint in category or hint in spec["label"].lower()):
+            score += 8
+        scores.append({
+            "category": category,
+            "label": spec["label"],
+            "score": score,
+            "matched_keywords": hits[:12],
+        })
+
+    scores.sort(key=lambda item: item["score"], reverse=True)
+    primary = scores[0] if scores and scores[0]["score"] > 0 else {
+        "category": "misc",
+        "label": "Misc / Unknown",
+        "score": 0,
+        "matched_keywords": [],
+    }
+
+    selected = []
+    seen_categories = set()
+    for item in scores:
+        if item["score"] <= 0:
+            continue
+        if item["category"] in seen_categories:
+            continue
+        selected.append(item)
+        seen_categories.add(item["category"])
+        if len(selected) >= 3:
+            break
+
+    if not selected:
+        selected = [primary]
+
+    flow = [
+        {
+            "section": "Utilities",
+            "tool": "Flag Extractor",
+            "action": f"Set the flag format to {flag_format or 'the event format'} and use Deep Scan on the original description, hints, and any copied output.",
+        }
+    ]
+
+    external = []
+    for item in selected:
+        spec = TOOL_FLOWS.get(item["category"])
+        if not spec:
+            continue
+        for section, tool, action in spec["flow"]:
+            step = {"section": section, "tool": tool, "action": action}
+            if step not in flow:
+                flow.append(step)
+        external.extend(spec.get("external", []))
+
+    if primary["category"] == "misc":
+        flow.extend([
+            {"section": "Utilities", "tool": "Encode / Decode", "action": "Try common encodings and paste each result into Deep Scan."},
+            {"section": "Utilities", "tool": "Regex Search", "action": "Extract URLs, emails, hashes, numbers, and flag-shaped strings."},
+            {"section": "Forensics", "tool": "Full File Analysis", "action": "If there is an attachment, start with magic bytes, strings, entropy, and hashes."},
+        ])
+
+    seen_tools = set()
+    tools = []
+    for step in flow:
+        key = (step["section"], step["tool"])
+        if key in seen_tools:
+            continue
+        seen_tools.add(key)
+        tools.append({"section": step["section"], "tool": step["tool"]})
+
+    clues = _extract_description_clues(description)
+    priorities = []
+    if clues["files"]:
+        priorities.append("An attachment or filename is mentioned; start with file analysis before guessing.")
+    if clues["urls"]:
+        priorities.append("A URL is present; fetch it with HTTP Request Tester and deep-scan the response.")
+    if clues["hashes"]:
+        priorities.append("Hash-like values are present; identify length/algorithm and try challenge-specific wordlists.")
+    if clues["crypto_params"]:
+        priorities.append("RSA-style parameter names are present; parse/factor/decrypt with the RSA tools.")
+    if "pcap" in lower or "packet" in lower or "traffic" in lower:
+        priorities.append("Packet analysis likely needs Wireshark/tshark before using BlackBox on extracted payloads.")
+
+    return {
+        "primary_category": primary,
+        "ranked_categories": scores[:5],
+        "recommended_tools": tools,
+        "flow": flow[:18],
+        "clues": clues,
+        "priorities": priorities,
+        "external_tools": list(dict.fromkeys(external))[:12],
+        "safety": [
+            "Use active web and network tests only on challenge-scoped targets.",
+            "Do not brute force the flag submission system or scan CTF infrastructure.",
+        ],
+    }
+
+
 @utils_bp.post("/encode-decode")
 def encode_decode_route():
     data = request.get_json(silent=True) or {}
@@ -477,3 +751,16 @@ def deep_flag_scan_route():
         ))
     except re.error as exc:
         return error(f"Invalid regex: {exc}")
+
+
+@utils_bp.post("/challenge-flow")
+def challenge_flow_route():
+    data = request.get_json(silent=True) or {}
+    try:
+        return success(suggest_challenge_flow(
+            data.get("description", ""),
+            data.get("format", "K4P{...}"),
+            data.get("category_hint", ""),
+        ))
+    except ValueError as exc:
+        return error(str(exc))

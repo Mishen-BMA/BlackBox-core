@@ -1,3 +1,134 @@
+function buildChallengeAdvisor(panel){
+    panel.innerHTML = `
+    ${toolHeader('', 'Challenge Flow Advisor', 'Turn a CTF prompt into a BlackBox tool workflow')}
+    <div class="tool-wrap">
+        <div class="tool-title">Challenge Flow Advisor</div>
+        <label>Challenge description</label>
+        <textarea id="advisorDescription" style="min-height:220px;" placeholder="Paste the challenge title, category, story, hints, URLs, filenames, and any visible data..."></textarea>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div>
+                <label>Flag format</label>
+                <input type="text" id="advisorFlagFormat" value="K4P{...}" placeholder="K4P{...}">
+            </div>
+            <div>
+                <label>Category hint (optional)</label>
+                <input type="text" id="advisorCategoryHint" placeholder="web, crypto, forensics, osint...">
+            </div>
+        </div>
+        <div class="button-group">
+            <button class="btn btn-run" onclick="runChallengeAdvisor()">Build Flow</button>
+            <button class="btn btn-outline" onclick="clearChallengeAdvisor()">Clear</button>
+        </div>
+        ${createOutput('advisorOutput', 'Recommended Flow')}
+    </div>`;
+}
+
+async function runChallengeAdvisor(){
+    const description = document.getElementById('advisorDescription').value.trim();
+    const format = document.getElementById('advisorFlagFormat').value.trim() || 'K4P{...}';
+    const category_hint = document.getElementById('advisorCategoryHint').value.trim();
+    if(!description){ showToast('Paste a challenge description', 'error'); return; }
+    setLoading('advisorOutput');
+    const res = await apiPost('/api/utils/challenge-flow', {description, format, category_hint});
+    if(res.status === 'ok'){
+        setOutput('advisorOutput', challengeAdvisorHtml(res.data), true);
+    } else {
+        setOutput('advisorOutput', `Error: ${res.error}`);
+    }
+}
+
+function clueListHtml(label, values){
+    if(!values || !values.length) return '';
+    return `<div class="advisor-clue"><strong>${escapeHtml(label)}</strong><span>${values.map(escapeHtml).join(', ')}</span></div>`;
+}
+
+function challengeAdvisorHtml(data){
+    const primary = data.primary_category || {};
+    const ranked = data.ranked_categories || [];
+    const flow = data.flow || [];
+    const tools = data.recommended_tools || [];
+    const clues = data.clues || {};
+    const priorities = data.priorities || [];
+    const external = data.external_tools || [];
+    const safety = data.safety || [];
+
+    const categoryHtml = ranked.length ? ranked.map(item => `
+        <div class="advisor-chip">
+            <strong>${escapeHtml(item.label)}</strong>
+            <span>score ${escapeHtml(item.score)}</span>
+            ${item.matched_keywords?.length ? `<small>${item.matched_keywords.map(escapeHtml).join(', ')}</small>` : ''}
+        </div>
+    `).join('') : '<div class="flag-empty">No strong category match. Start with utilities and file analysis.</div>';
+
+    const toolsHtml = tools.length ? tools.map(item => `
+        <div class="advisor-tool"><span>${escapeHtml(item.section)}</span><strong>${escapeHtml(item.tool)}</strong></div>
+    `).join('') : '<div class="flag-empty">No tools suggested.</div>';
+
+    const flowHtml = flow.map((step, index) => `
+        <div class="advisor-step">
+            <span class="advisor-step-num">${index + 1}</span>
+            <div>
+                <strong>${escapeHtml(step.section)} -> ${escapeHtml(step.tool)}</strong>
+                <p>${escapeHtml(step.action)}</p>
+            </div>
+        </div>
+    `).join('');
+
+    const cluesHtml = [
+        clueListHtml('URLs', clues.urls),
+        clueListHtml('Domains', clues.domains),
+        clueListHtml('IPs', clues.ips),
+        clueListHtml('Files', clues.files),
+        clueListHtml('Hashes', clues.hashes),
+        clueListHtml('Crypto Params', clues.crypto_params),
+        clueListHtml('Encoding Clues', clues.encoding_clues),
+    ].filter(Boolean).join('') || '<div class="flag-empty">No obvious URLs, files, hashes, or crypto parameters detected.</div>';
+
+    return `
+        <div class="advisor-summary">
+            <div>
+                <span>Primary category</span>
+                <strong>${escapeHtml(primary.label || 'Unknown')}</strong>
+            </div>
+            <div>
+                <span>Recommended tools</span>
+                <strong>${tools.length}</strong>
+            </div>
+        </div>
+
+        <div class="scan-section">
+            <div class="output-label">Category Signals</div>
+            <div class="advisor-chip-list">${categoryHtml}</div>
+        </div>
+
+        <div class="scan-section">
+            <div class="output-label">Tools To Open</div>
+            <div class="advisor-tool-grid">${toolsHtml}</div>
+        </div>
+
+        <div class="scan-section">
+            <div class="output-label">Flow</div>
+            <div class="advisor-flow">${flowHtml}</div>
+        </div>
+
+        <div class="scan-section">
+            <div class="output-label">Detected Clues</div>
+            <div class="advisor-clues">${cluesHtml}</div>
+        </div>
+
+        ${priorities.length ? `<div class="scan-section"><div class="output-label">Priority Notes</div><ul class="advisor-list">${priorities.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div>` : ''}
+        ${external.length ? `<div class="scan-section"><div class="output-label">When BlackBox Is Not Enough</div><ul class="advisor-list">${external.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div>` : ''}
+        ${safety.length ? `<div class="warn-box">${safety.map(escapeHtml).join('<br>')}</div>` : ''}
+    `;
+}
+
+function clearChallengeAdvisor(){
+    document.getElementById('advisorDescription').value = '';
+    document.getElementById('advisorCategoryHint').value = '';
+    document.getElementById('advisorFlagFormat').value = 'K4P{...}';
+    resetOutput('advisorOutput');
+}
+
 function buildEncodeDecode(panel){
     panel.innerHTML = `
     ${toolHeader('', 'Encode / Decode', 'Base, URL, HTML, and binary transformations')}

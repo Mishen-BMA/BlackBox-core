@@ -105,7 +105,7 @@ def status():
             "network": ["dns", "whois", "portscan", "geoip", "subdomains", "ssl", "headers"],
             "forensics": ["analyze", "strings", "hexdump", "entropy", "zip_crack", "zip_deep_scan", "lsb"],
             "web": ["request", "sqli_test", "xss_test", "cors_test", "ssrf_payloads", "open_redirect"],
-            "utils": ["encode_decode", "base_convert", "hash", "regex", "json_format", "url_parse", "extract_flags", "deep_flag_scan"],
+            "utils": ["challenge_flow", "encode_decode", "base_convert", "hash", "regex", "json_format", "url_parse", "extract_flags", "deep_flag_scan"],
         },
     })
 

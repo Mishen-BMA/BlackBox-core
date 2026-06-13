@@ -45,7 +45,7 @@
             </button>
             <button class="nav-btn" onclick="showView('utils')">
                 <span class="nav-icon"></span> Utilities
-                <span class="nav-badge">7</span>
+                <span class="nav-badge">8</span>
             </button>
             <div class="nav-label">Info</div>
             <button class="nav-btn" onclick="showView('about')">
@@ -113,8 +113,8 @@
                 <div class="card" onclick="showView('utils')">
                     <div class="card-icon"></div>
                     <div class="card-title">Utilities</div>
-                    <p class="card-desc">Encoding, hashing, base conversion, regex, JSON formatting, URL parsing, flags</p>
-                    <span class="card-badge available">7 Tools</span>
+                    <p class="card-desc">Challenge flow advice, encoding, hashing, base conversion, regex, JSON, URLs, flags</p>
+                    <span class="card-badge available">8 Tools</span>
                 </div>
             </div>
         </div>
@@ -307,6 +307,11 @@
                 <p>Fast helpers for common CTF text, encoding, and parsing work</p>
             </div>
             <div class="card-grid">
+                <div class="card" onclick="showTool('challengeAdvisor')">
+                    <div class="card-icon"></div>
+                    <div class="card-title">Challenge Flow Advisor</div>
+                    <p class="card-desc">Paste a challenge description and get the BlackBox tool order to follow</p>
+                </div>
                 <div class="card" onclick="showTool('encodeDecode')">
                     <div class="card-icon"></div>
                     <div class="card-title">Encode / Decode</div>
@@ -343,6 +348,7 @@
                     <p class="card-desc">Find CTF-style flags in logs or decoded output</p>
                 </div>
             </div>
+            <div id="challengeAdvisor" class="tool-panel" style="display:none"></div>
             <div id="encodeDecode" class="tool-panel" style="display:none"></div>
             <div id="hashTool"     class="tool-panel" style="display:none"></div>
             <div id="baseConvert"  class="tool-panel" style="display:none"></div>

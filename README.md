@@ -50,3 +50,7 @@ The ZIP Password Cracker can use these local lists:
 - `ctf-common.txt` - CTF-focused defaults
 
 Add more `.txt` wordlists to `assets/wordlists/`; they will appear in the ZIP cracker dropdown.
+
+## Challenge Flow Advisor
+
+Open `Utilities -> Challenge Flow Advisor` and paste a challenge title, description, hints, URLs, filenames, and visible data. BlackBox will rank likely categories and return the recommended tool flow to follow.
